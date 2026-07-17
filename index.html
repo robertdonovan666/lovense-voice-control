@@ -497,15 +497,14 @@
     </div>
 
     <div class="container">
-        <!-- Connect Button Section -->
+        <!-- QR Code Auth Section -->
         <div id="qrSection" class="qr-container">
-            <button id="connectButton" class="connect-button">
-                <span style="font-size: 48px; margin-bottom: 16px; display: block;">🔗</span>
-                Connect to Device
-            </button>
+            <div class="qr-box">
+                <img id="qrCode" class="qr-code" src="" alt="QR Code">
+            </div>
             <div class="qr-instructions">
-                <strong>Tap to Connect</strong>
-                Press the button above to open Lovense Connect App and authorize this iPad.
+                <strong>Print & Scan</strong>
+                Print this QR code. Then open Lovense Connect App on your iPad and scan the printed code.
             </div>
         </div>
 
@@ -631,9 +630,6 @@
         // ==================== Lovense SDK Initialization ====================
         async function initializeLovenseSdk() {
             try {
-                // Setup the connect button
-                setupConnectButton();
-                
                 // Check for stored connection data
                 const storedAuth = localStorage.getItem('lovenseAuthToken');
                 const storedUid = localStorage.getItem('lovenseUid');
@@ -642,13 +638,63 @@
                     // Try to reconnect with stored credentials
                     initializeWithToken(storedAuth, storedUid);
                 } else {
-                    // First connection - show connect button
-                    showStatus('Ready to connect - press the button above');
+                    // First connection - show QR code
+                    showQrCode();
                 }
             } catch (error) {
                 console.error('SDK initialization error:', error);
                 showError('Failed to initialize SDK');
             }
+        }
+
+        async function showQrCode() {
+            try {
+                // Create temporary SDK instance for QR code
+                const tempSdk = new LovenseBasicSdk({
+                    platform: 'web',
+                    authToken: 'temp',
+                    uid: 'temp',
+                });
+
+                tempSdk.on('ready', async () => {
+                    try {
+                        const qrRes = await tempSdk.getQrcode();
+                        if (qrRes.qrcodeUrl) {
+                            document.getElementById('qrCode').src = qrRes.qrcodeUrl;
+                            // Listen for successful connection
+                            handleQrConnection(tempSdk);
+                        }
+                    } catch (e) {
+                        console.error('QR code error:', e);
+                        showError('Failed to get QR code');
+                    }
+                });
+
+                tempSdk.on('sdkError', (data) => {
+                    console.error('SDK Error:', data.code, data.message);
+                });
+            } catch (error) {
+                console.error('QR code setup error:', error);
+                showError('Failed to setup QR code');
+            }
+        }
+
+        function handleQrConnection(tempSdk) {
+            // Listen for connection via QR scan
+            tempSdk.on('appStatusChange', (status) => {
+                if (status) {
+                    // Connected! 
+                    tempSdk.connectLovenseAPP();
+                    // Monitor for toys coming online
+                    tempSdk.on('toyOnlineChange', (online) => {
+                        if (online) {
+                            // Successfully connected to device
+                            state.sdk = tempSdk;
+                            setupSdk(tempSdk);
+                        }
+                    });
+                }
+            });
         }
 
         function setupConnectButton() {
