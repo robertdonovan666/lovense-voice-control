@@ -630,57 +630,72 @@
 
         // ==================== Lovense SDK Initialization ====================
         async function initializeLovenseSdk() {
+            console.log('📍 STEP 1: initializeLovenseSdk() called');
             try {
                 // Check for stored connection data
                 const storedAuth = localStorage.getItem('lovenseAuthToken');
                 const storedUid = localStorage.getItem('lovenseUid');
+                console.log('📍 STEP 2: Checking for stored credentials');
+                console.log('   - storedAuth:', storedAuth ? '✅ Found' : '❌ Not found');
+                console.log('   - storedUid:', storedUid ? '✅ Found' : '❌ Not found');
 
                 if (storedAuth && storedUid) {
-                    // Try to reconnect with stored credentials
+                    console.log('📍 STEP 3a: Found stored credentials - reconnecting');
                     initializeWithToken(storedAuth, storedUid);
                 } else {
-                    // First connection - show QR code
+                    console.log('📍 STEP 3b: No stored credentials - generating QR code');
                     showQrCode();
                 }
             } catch (error) {
-                console.error('SDK initialization error:', error);
-                showError('Failed to initialize SDK');
+                console.error('❌ SDK initialization error:', error);
+                showError('Failed to initialize SDK: ' + error.message);
             }
         }
 
         async function showQrCode() {
+            console.log('📍 STEP 4: showQrCode() called - creating SDK instance');
             try {
                 // Create temporary SDK instance for QR code
+                console.log('📍 STEP 5: Instantiating LovenseBasicSdk with:');
+                console.log('   - platform: "web"');
+                console.log('   - uid: "aocouple"');
+                
                 const tempSdk = new LovenseBasicSdk({
                     platform: 'web',
                     authToken: 'temp',
                     uid: 'aocouple',
                 });
+                console.log('✅ STEP 6: SDK instance created successfully');
 
                 tempSdk.on('ready', async () => {
+                    console.log('✅ STEP 7: SDK ready event triggered');
                     try {
+                        console.log('📍 STEP 8: Calling getQrcode()...');
                         const qrRes = await tempSdk.getQrcode();
+                        console.log('📍 STEP 9: getQrcode() response received:', qrRes);
+                        
                         if (qrRes && qrRes.qrcodeUrl) {
+                            console.log('✅ STEP 10: QR code URL received - displaying QR code');
                             qrCodeImg.src = qrRes.qrcodeUrl;
-                            console.log('QR code loaded successfully');
+                            console.log('✅ STEP 11: QR code image set');
                             // Listen for successful connection
                             handleQrConnection(tempSdk);
                         } else {
-                            console.error('No QR code URL in response');
+                            console.error('❌ STEP 10: No QR code URL in response');
                             showError('Failed to generate QR code');
                         }
                     } catch (e) {
-                        console.error('QR code error:', e);
+                        console.error('❌ STEP 8-9: getQrcode() failed:', e);
                         showError('Failed to get QR code: ' + e.message);
                     }
                 });
 
                 tempSdk.on('sdkError', (data) => {
-                    console.error('SDK Error:', data.code, data.message);
+                    console.error('❌ SDK Error event:', data.code, data.message);
                     showError('SDK Error: ' + data.message);
                 });
             } catch (error) {
-                console.error('QR code setup error:', error);
+                console.error('❌ STEP 5: SDK instantiation failed:', error);
                 showError('Failed to setup QR code: ' + error.message);
             }
         }
@@ -1124,6 +1139,20 @@
                 // Audio context not available, silently continue
             }
         }
+
+        // ==================== Debug Logging ====================
+        console.log('🚀 Page loaded - Lovense Voice Control App initializing');
+        console.log('📱 UID: aocouple');
+        console.log('🔗 SDK URL: https://api.lovense-api.com/basic-sdk/core.min.js');
+        
+        // Check if SDK loaded after 2 seconds
+        setTimeout(() => {
+            if (typeof LovenseBasicSdk !== 'undefined') {
+                console.log('✅ SUCCESS: LovenseBasicSdk is loaded and available');
+            } else {
+                console.error('❌ FAILED: LovenseBasicSdk is NOT available - SDK did not load');
+            }
+        }, 2000);
 
         // ==================== Utility Functions ====================
         function showStatus(message) {
