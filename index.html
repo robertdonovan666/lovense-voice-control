@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Lovense Control">
     <title>Lovense Voice Control</title>
-    <script src="https://api.lovense-api.com/basic-sdk/c.js"></script>
+    <script src="https://api.lovense-api.com/basic-sdk/core.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -603,6 +603,7 @@
         // ==================== UI Elements ====================
         const qrSection = document.getElementById('qrSection');
         const controlSection = document.getElementById('controlSection');
+        const qrCodeImg = document.getElementById('qrCode');
         const voiceBtn = document.getElementById('voiceBtn');
         const waveform = document.getElementById('waveform');
         const transcript = document.getElementById('transcript');
@@ -653,29 +654,34 @@
                 const tempSdk = new LovenseBasicSdk({
                     platform: 'web',
                     authToken: 'temp',
-                    uid: 'temp',
+                    uid: 'aocouple',
                 });
 
                 tempSdk.on('ready', async () => {
                     try {
                         const qrRes = await tempSdk.getQrcode();
-                        if (qrRes.qrcodeUrl) {
-                            document.getElementById('qrCode').src = qrRes.qrcodeUrl;
+                        if (qrRes && qrRes.qrcodeUrl) {
+                            qrCodeImg.src = qrRes.qrcodeUrl;
+                            console.log('QR code loaded successfully');
                             // Listen for successful connection
                             handleQrConnection(tempSdk);
+                        } else {
+                            console.error('No QR code URL in response');
+                            showError('Failed to generate QR code');
                         }
                     } catch (e) {
                         console.error('QR code error:', e);
-                        showError('Failed to get QR code');
+                        showError('Failed to get QR code: ' + e.message);
                     }
                 });
 
                 tempSdk.on('sdkError', (data) => {
                     console.error('SDK Error:', data.code, data.message);
+                    showError('SDK Error: ' + data.message);
                 });
             } catch (error) {
                 console.error('QR code setup error:', error);
-                showError('Failed to setup QR code');
+                showError('Failed to setup QR code: ' + error.message);
             }
         }
 
@@ -747,7 +753,7 @@
                 const sdk = new LovenseBasicSdk({
                     platform: 'web',
                     authToken: authToken,
-                    uid: uid,
+                    uid: uid || 'aocouple',
                 });
 
                 sdk.on('ready', () => {
