@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lovense Control">
+    <title>Lovense Voice Control</title>
+    <script src="https://api.lovense-api.com/basic-sdk/core.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: #1a1a1a;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .device-info {
+            display: flex;
+            gap: 24px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 500;
+            font-family: 'Courier New', monospace;
+        }
+
+        .connection-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff1493;
+            animation: pulse 2s infinite;
+        }
+
+        .connection-dot.disconnected {
+            background: #555;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Container */
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            flex: 1;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #2a2a2a;
+            border-top: 4px solid #ff1493;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            color: #aaa;
+            text-align: center;
+        }
+
+        /* Voice Control Section */
+        .voice-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .voice-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #ff1493;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 24px rgba(255, 20, 147, 0.3);
+            position: relative;
+            z-index: 2;
+        }
+
+        .voice-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 12px rgba(255, 20, 147, 0.4);
+        }
+
+        .voice-button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .voice-button.listening {
+            animation: listening-pulse 1s infinite;
+        }
+
+        @keyframes listening-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .command-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .command-text {
+            position: absolute;
+            font-family: 'Avenir', 'Trebuchet MS', 'Century Gothic', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: #ff1493;
+            opacity: 0.8;
+            letter-spacing: 0.8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px 10px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .command-text:hover:not(:disabled) {
+            opacity: 1;
+            transform: scale(1.15);
+            text-shadow: 0 0 8px rgba(255, 20, 147, 0.5);
+        }
+
+        .command-text:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .command-text:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+        }
+
+        .cmd-stop { top: -30px; left: -50px; }
+        .cmd-start { top: -30px; right: -50px; }
+        .cmd-slower { left: -50px; top: 50%; transform: translateY(-50%); }
+        .cmd-faster { right: -50px; top: 50%; transform: translateY(-50%); }
+        .cmd-softer { bottom: -30px; left: -50px; }
+        .cmd-harder { bottom: -30px; right: -50px; }
+
+        /* Waveform */
+        .waveform {
+            width: 200px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: rgba(255, 20, 147, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            display: none;
+        }
+
+        .waveform.active {
+            display: flex;
+        }
+
+        .wave-bar {
+            width: 4px;
+            background: #ff1493;
+            border-radius: 2px;
+            animation: wave 0.6s ease-in-out infinite;
+        }
+
+        .wave-bar:nth-child(1) { animation-delay: 0s; height: 20px; }
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 30px; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 40px; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 50px; }
+        .wave-bar:nth-child(5) { animation-delay: 0.4s; height: 40px; }
+        .wave-bar:nth-child(6) { animation-delay: 0.5s; height: 30px; }
+        .wave-bar:nth-child(7) { animation-delay: 0.6s; height: 20px; }
+
+        @keyframes wave {
+            0%, 100% { height: 10px; }
+            50% { height: 50px; }
+        }
+
+        .transcript {
+            text-align: center;
+            color: #aaa;
+            font-size: 14px;
+            min-height: 20px;
+            margin-top: 8px;
+        }
+
+        .transcript.active {
+            color: #ff1493;
+        }
+
+        /* Controls */
+        .controls {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .slider-group {
+            width: 100%;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .slider-value {
+            color: #ff1493;
+            font-weight: 600;
+        }
+
+        .intensity-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #2a2a2a;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .intensity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ff1493;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
+        }
+
+        .intensity-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ff1493;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
+        }
+
+        .patterns-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            width: 100%;
+        }
+
+        .pattern-btn {
+            background: #1a1a1a;
+            border: 2px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            font-size: 11px;
+            color: #fff;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .pattern-btn:active {
+            border-color: #ff1493;
+            background: rgba(255, 20, 147, 0.1);
+            transform: scale(0.98);
+        }
+
+        .pattern-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pattern-icon {
+            font-size: 18px;
+        }
+
+        .status-message {
+            font-size: 14px;
+            color: #aaa;
+            text-align: center;
+            padding: 12px 24px;
+            background: rgba(255, 20, 147, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid #ff1493;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-bar">
+        <div class="device-info">
+            <div class="info-item">
+                <span class="info-label">Status</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="connection-dot disconnected" id="connectionDot"></div>
+                    <span id="connectionStatus">Loading...</span>
+                </div>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Device</span>
+                <span class="info-value" id="deviceName">—</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Battery</span>
+                <span class="info-value" id="deviceBattery">—</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Loading Screen -->
+        <div id="loadingScreen" class="loading-screen">
+            <div class="spinner"></div>
+            <div class="loading-text">
+                Connecting to backend...<br>
+                <span style="font-size: 12px; color: #666; margin-top: 8px;">192.168.7.74:3000</span>
+            </div>
+        </div>
+
+        <!-- Voice Control Section -->
+        <div id="controlSection" class="voice-section hidden">
+            <div class="voice-container">
+                <div class="command-ring">
+                    <button class="command-text cmd-stop" id="cmdStop" disabled>stop</button>
+                    <button class="command-text cmd-start" id="cmdStart" disabled>start</button>
+                    <button class="command-text cmd-slower" id="cmdSlower" disabled>slower</button>
+                    <button class="command-text cmd-faster" id="cmdFaster" disabled>faster</button>
+                    <button class="command-text cmd-softer" id="cmdSofter" disabled>softer</button>
+                    <button class="command-text cmd-harder" id="cmdHarder" disabled>harder</button>
+                </div>
+                <button class="voice-button" id="voiceBtn" disabled>🎤</button>
+            </div>
+
+            <div class="waveform" id="waveform">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+            </div>
+            <div class="transcript" id="transcript"></div>
+
+            <div class="controls">
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Intensity</span>
+                        <span class="slider-value" id="intensityValue">5</span>
+                    </div>
+                    <input type="range" class="intensity-slider" id="intensitySlider" min="0" max="20" value="5" disabled>
+                </div>
+
+                <div class="slider-group" id="speedSection" style="display: none;">
+                    <div class="slider-label">
+                        <span>Speed</span>
+                        <span class="slider-value" id="speedValue">50%</span>
+                    </div>
+                    <input type="range" class="intensity-slider" id="speedSlider" min="0" max="100" value="50" disabled>
+                </div>
+
+                <div style="width: 100%; margin-top: 8px;">
+                    <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Patterns</div>
+                    <div class="patterns-grid">
+                        <button class="pattern-btn" id="patternPulse" disabled>
+                            <span class="pattern-icon">📳</span>
+                            <span>Pulse</span>
+                            <span style="font-size: 9px; color: #888;">⚡</span>
+                        </button>
+                        <button class="pattern-btn" id="patternWave" disabled>
+                            <span class="pattern-icon">〰️</span>
+                            <span>Wave</span>
+                            <span style="font-size: 9px; color: #888;">⚡</span>
+                        </button>
+                        <button class="pattern-btn" id="patternFireworks" disabled>
+                            <span class="pattern-icon">✨</span>
+                            <span>Fireworks</span>
+                            <span style="font-size: 9px; color: #888;">⚡</span>
+                        </button>
+                        <button class="pattern-btn" id="patternEarthquake" disabled>
+                            <span class="pattern-icon">━━━</span>
+                            <span>Earthquake</span>
+                            <span style="font-size: 9px; color: #555;">—</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="statusMessage" class="status-message hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== Debug Logging ====================
+        console.log('🚀 Lovense Voice Control App Loading');
+        console.log('📱 Backend: http://192.168.7.74:3000');
+
+        // ==================== State ====================
+        let state = {
+            sdk: null,
+            connected: false,
+            listening: false,
+            currentIntensity: 5,
+            currentSpeed: 50,
+            currentPattern: null,
+            onlineToys: [],
+            authToken: null,
+            uid: 'aocouple'
+        };
+
+        // ==================== UI Elements ====================
+        const loadingScreen = document.getElementById('loadingScreen');
+        const controlSection = document.getElementById('controlSection');
+        const voiceBtn = document.getElementById('voiceBtn');
+        const waveform = document.getElementById('waveform');
+        const transcript = document.getElementById('transcript');
+        const intensitySlider = document.getElementById('intensitySlider');
+        const intensityValue = document.getElementById('intensityValue');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const speedSection = document.getElementById('speedSection');
+        const connectionDot = document.getElementById('connectionDot');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const deviceName = document.getElementById('deviceName');
+        const deviceBattery = document.getElementById('deviceBattery');
+        const statusMessage = document.getElementById('statusMessage');
+
+        const patternButtons = {
+            pulse: document.getElementById('patternPulse'),
+            wave: document.getElementById('patternWave'),
+            fireworks: document.getElementById('patternFireworks'),
+            earthquake: document.getElementById('patternEarthquake'),
+        };
+
+        const cmdButtons = {
+            start: document.getElementById('cmdStart'),
+            stop: document.getElementById('cmdStop'),
+            harder: document.getElementById('cmdHarder'),
+            softer: document.getElementById('cmdSofter'),
+            faster: document.getElementById('cmdFaster'),
+            slower: document.getElementById('cmdSlower'),
+        };
+
+        // ==================== Get AuthToken from Backend ====================
+        async function getAuthTokenFromBackend() {
+            console.log('📍 Fetching authToken from backend...');
+            try {
+                const response = await fetch('http://192.168.7.74:3000/api/get-auth-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    console.error('❌ Backend error:', response.status);
+                    showError('Failed to connect to backend');
+                    return null;
+                }
+
+                const data = await response.json();
+                console.log('✅ authToken received:', data.authToken ? 'Success' : 'Failed');
+                
+                if (data.success && data.authToken) {
+                    return data.authToken;
+                } else {
+                    showError('Failed to get authToken from backend');
+                    return null;
+                }
+            } catch (error) {
+                console.error('❌ Backend connection error:', error);
+                showError('Cannot reach backend at 192.168.7.74:3000');
+                return null;
+            }
+        }
+
+        // ==================== Initialize SDK ====================
+        async function initializeLovenseSdk() {
+            console.log('📍 Initializing Lovense SDK...');
+            
+            // Get authToken from backend first
+            const authToken = await getAuthTokenFromBackend();
+            if (!authToken) {
+                console.error('❌ Could not get authToken');
+                return;
+            }
+
+            state.authToken = authToken;
+            console.log('✅ authToken obtained, creating SDK instance...');
+
+            try {
+                const sdk = new LovenseBasicSdk({
+                    platform: 'web',
+                    authToken: authToken,
+                    uid: state.uid,
+                });
+
+                console.log('✅ SDK instance created');
+
+                sdk.on('ready', () => {
+                    console.log('✅ SDK ready event triggered');
+                    setupSdk(sdk);
+                });
+
+                sdk.on('sdkError', (data) => {
+                    console.error('❌ SDK Error:', data.code, data.message);
+                    showError('SDK Error: ' + data.message);
+                });
+
+            } catch (error) {
+                console.error('❌ SDK initialization error:', error);
+                showError('Failed to initialize SDK: ' + error.message);
+            }
+        }
+
+        // ==================== Setup SDK ====================
+        function setupSdk(sdk) {
+            state.sdk = sdk;
+            console.log('✅ Setting up SDK listeners...');
+
+            sdk.on('appStatusChange', (status) => {
+                updateConnectionStatus(status);
+            });
+
+            sdk.on('toyOnlineChange', (online) => {
+                updateConnectionStatus(online);
+            });
+
+            sdk.on('toyInfoChange', (toys) => {
+                state.onlineToys = Array.isArray(toys) ? toys : [toys];
+                updateDeviceInfo();
+            });
+
+            // Get initial toys
+            const toys = sdk.getOnlineToys();
+            if (toys && toys.length > 0) {
+                state.onlineToys = toys;
+                updateConnectionStatus(true);
+            } else {
+                checkConnection();
+            }
+        }
+
+        function checkConnection() {
+            if (state.sdk) {
+                const online = state.sdk.checkToyOnline();
+                updateConnectionStatus(online);
+                if (!online) {
+                    setTimeout(checkConnection, 2000);
+                }
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            state.connected = connected;
+            connectionDot.classList.toggle('disconnected', !connected);
+            connectionStatus.textContent = connected ? 'Connected' : 'Disconnected';
+
+            loadingScreen.classList.toggle('hidden', connected);
+            controlSection.classList.toggle('hidden', !connected);
+
+            voiceBtn.disabled = !connected;
+            intensitySlider.disabled = !connected;
+            speedSlider.disabled = !connected;
+            Object.values(patternButtons).forEach(btn => btn.disabled = !connected);
+            Object.values(cmdButtons).forEach(btn => btn.disabled = !connected);
+        }
+
+        function updateDeviceInfo() {
+            if (state.onlineToys.length > 0) {
+                const device = state.onlineToys[0];
+                deviceName.textContent = device.nickname || device.name;
+                deviceBattery.textContent = `${device.battery}%`;
+            }
+        }
+
+        // ==================== Audio Feedback ====================
+        function playBeep() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.15);
+            } catch (e) {
+                // Audio context not available
+            }
+        }
+
+        // ==================== Voice Control ====================
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.language = 'en-US';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                state.listening = true;
+                voiceBtn.classList.add('listening');
+                waveform.classList.add('active');
+                transcript.textContent = 'Listening...';
+                transcript.classList.add('active');
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcriptSegment = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        processVoiceCommand(transcriptSegment);
+                    } else {
+                        interimTranscript += transcriptSegment;
+                    }
+                }
+                transcript.textContent = interimTranscript || 'Processing...';
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                transcript.textContent = 'Error: ' + event.error;
+            };
+
+            recognition.onend = () => {
+                state.listening = false;
+                voiceBtn.classList.remove('listening');
+                waveform.classList.remove('active');
+                transcript.classList.remove('active');
+                transcript.textContent = '';
+            };
+        }
+
+        voiceBtn.addEventListener('click', () => {
+            if (!recognition) {
+                showError('Speech recognition not supported');
+                return;
+            }
+            if (state.listening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        });
+
+        function processVoiceCommand(command) {
+            const cmd = command.toLowerCase().trim();
+            console.log('Voice command:', cmd);
+
+            if (cmd.includes('start')) {
+                sendCommand('start');
+            } else if (cmd.includes('stop')) {
+                sendCommand('stop');
+            } else if (cmd.includes('harder') || cmd.includes('increase')) {
+                increaseIntensity();
+            } else if (cmd.includes('softer') || cmd.includes('decrease')) {
+                decreaseIntensity();
+            } else if (cmd.includes('speed up') || cmd.includes('faster') || cmd.includes('go faster')) {
+                increaseSpeed();
+            } else if (cmd.includes('slow down') || cmd.includes('slower') || cmd.includes('go slower')) {
+                decreaseSpeed();
+            } else if (cmd.includes('pulse')) {
+                state.currentPattern = 'pulse';
+                speedSection.style.display = 'flex';
+                speedSlider.disabled = false;
+                cmdButtons.faster.disabled = false;
+                cmdButtons.slower.disabled = false;
+                sendPattern('pulse');
+            } else if (cmd.includes('wave')) {
+                state.currentPattern = 'wave';
+                speedSection.style.display = 'flex';
+                speedSlider.disabled = false;
+                cmdButtons.faster.disabled = false;
+                cmdButtons.slower.disabled = false;
+                sendPattern('wave');
+            } else if (cmd.includes('firework')) {
+                state.currentPattern = 'fireworks';
+                speedSection.style.display = 'flex';
+                speedSlider.disabled = false;
+                cmdButtons.faster.disabled = false;
+                cmdButtons.slower.disabled = false;
+                sendPattern('fireworks');
+            } else if (cmd.includes('earthquake')) {
+                state.currentPattern = 'earthquake';
+                speedSection.style.display = 'none';
+                speedSlider.disabled = true;
+                cmdButtons.faster.disabled = true;
+                cmdButtons.slower.disabled = true;
+                sendPattern('earthquake');
+            } else {
+                showStatus('Command: "' + command.substring(0, 30) + '..."');
+            }
+        }
+
+        // ==================== Device Commands ====================
+        function sendCommand(type) {
+            if (!state.sdk || state.onlineToys.length === 0) {
+                showError('No device connected');
+                return;
+            }
+
+            try {
+                if (type === 'start') {
+                    state.sdk.sendToyCommand({ vibrate: state.currentIntensity || 5 });
+                    showStatus('Started');
+                } else if (type === 'stop') {
+                    state.sdk.stopToyAction();
+                    showStatus('Stopped');
+                }
+            } catch (error) {
+                console.error('Command error:', error);
+                showError('Failed to send command');
+            }
+        }
+
+        function sendPattern(pattern) {
+            if (!state.sdk || state.onlineToys.length === 0) {
+                showError('No device connected');
+                return;
+            }
+
+            try {
+                state.sdk.sendPresetCommand({ name: pattern, time: 0 });
+                showStatus(`Pattern: ${pattern}`);
+            } catch (error) {
+                console.error('Pattern error:', error);
+                showError('Failed to send pattern');
+            }
+        }
+
+        function increaseIntensity() {
+            if (state.currentIntensity < 20) {
+                state.currentIntensity++;
+                intensitySlider.value = state.currentIntensity;
+                intensityValue.textContent = state.currentIntensity;
+                if (state.sdk) {
+                    state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
+                }
+                showStatus(`Intensity: ${state.currentIntensity}/20`);
+            } else {
+                playBeep();
+                showStatus('⚠️ Maximum intensity reached');
+            }
+        }
+
+        function decreaseIntensity() {
+            if (state.currentIntensity > 0) {
+                state.currentIntensity--;
+                intensitySlider.value = state.currentIntensity;
+                intensityValue.textContent = state.currentIntensity;
+                if (state.sdk) {
+                    state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
+                }
+                showStatus(`Intensity: ${state.currentIntensity}/20`);
+            } else {
+                playBeep();
+                showStatus('⚠️ Minimum intensity reached');
+            }
+        }
+
+        function increaseSpeed() {
+            if (state.currentPattern === 'earthquake') {
+                showStatus('Speed control not available for Earthquake');
+                return;
+            }
+            if (state.currentSpeed < 100) {
+                state.currentSpeed += 10;
+                speedSlider.value = state.currentSpeed;
+                speedValue.textContent = state.currentSpeed + '%';
+                showStatus(`Speed: ${state.currentSpeed}%`);
+            } else {
+                playBeep();
+                showStatus('⚠️ Maximum speed reached');
+            }
+        }
+
+        function decreaseSpeed() {
+            if (state.currentPattern === 'earthquake') {
+                showStatus('Speed control not available for Earthquake');
+                return;
+            }
+            if (state.currentSpeed > 0) {
+                state.currentSpeed -= 10;
+                speedSlider.value = state.currentSpeed;
+                speedValue.textContent = state.currentSpeed + '%';
+                showStatus(`Speed: ${state.currentSpeed}%`);
+            } else {
+                playBeep();
+                showStatus('⚠️ Minimum speed reached');
+            }
+        }
+
+        // ==================== UI Event Listeners ====================
+        intensitySlider.addEventListener('input', (e) => {
+            state.currentIntensity = parseInt(e.target.value);
+            intensityValue.textContent = state.currentIntensity;
+            if (state.sdk && state.currentIntensity > 0) {
+                state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
+            }
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            state.currentSpeed = parseInt(e.target.value);
+            speedValue.textContent = state.currentSpeed + '%';
+            showStatus(`Speed: ${state.currentSpeed}%`);
+        });
+
+        patternButtons.pulse.addEventListener('click', () => {
+            state.currentPattern = 'pulse';
+            speedSection.style.display = 'flex';
+            speedSlider.disabled = false;
+            cmdButtons.faster.disabled = false;
+            cmdButtons.slower.disabled = false;
+            sendPattern('pulse');
+        });
+
+        patternButtons.wave.addEventListener('click', () => {
+            state.currentPattern = 'wave';
+            speedSection.style.display = 'flex';
+            speedSlider.disabled = false;
+            cmdButtons.faster.disabled = false;
+            cmdButtons.slower.disabled = false;
+            sendPattern('wave');
+        });
+
+        patternButtons.fireworks.addEventListener('click', () => {
+            state.currentPattern = 'fireworks';
+            speedSection.style.display = 'flex';
+            speedSlider.disabled = false;
+            cmdButtons.faster.disabled = false;
+            cmdButtons.slower.disabled = false;
+            sendPattern('fireworks');
+        });
+
+        patternButtons.earthquake.addEventListener('click', () => {
+            state.currentPattern = 'earthquake';
+            speedSection.style.display = 'none';
+            speedSlider.disabled = true;
+            cmdButtons.faster.disabled = true;
+            cmdButtons.slower.disabled = true;
+            sendPattern('earthquake');
+        });
+
+        cmdButtons.start.addEventListener('click', () => sendCommand('start'));
+        cmdButtons.stop.addEventListener('click', () => sendCommand('stop'));
+        cmdButtons.harder.addEventListener('click', () => increaseIntensity());
+        cmdButtons.softer.addEventListener('click', () => decreaseIntensity());
+        cmdButtons.faster.addEventListener('click', () => increaseSpeed());
+        cmdButtons.slower.addEventListener('click', () => decreaseSpeed());
+
+        // ==================== Utility Functions ====================
+        function showStatus(message) {
+            statusMessage.textContent = message;
+            statusMessage.classList.remove('hidden');
+            setTimeout(() => statusMessage.classList.add('hidden'), 3000);
+        }
+
+        function showError(message) {
+            statusMessage.textContent = '❌ ' + message;
+            statusMessage.classList.remove('hidden');
+            setTimeout(() => statusMessage.classList.add('hidden'), 5000);
+        }
+
+        // ==================== Initialize ====================
+        document.addEventListener('DOMContentLoaded', initializeLovenseSdk);
+    </script>
+</body>
+</html>
