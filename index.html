@@ -31,6 +31,58 @@
             flex-direction: column;
         }
 
+        /* Status Panel */
+        .status-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #1a1a1a;
+            border: 2px solid #ff1493;
+            border-radius: 8px;
+            padding: 12px;
+            z-index: 9999;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #aaa;
+            max-width: 200px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+            padding: 4px;
+        }
+
+        .status-icon {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+            font-size: 12px;
+        }
+
+        .status-icon.success {
+            color: #00ff00;
+        }
+
+        .status-icon.error {
+            color: #ff1493;
+        }
+
+        .status-icon.pending {
+            color: #888;
+        }
+
+        .status-text {
+            flex: 1;
+        }
+
         /* Status Bar */
         .status-bar {
             background: #1a1a1a;
@@ -388,6 +440,42 @@
     </style>
 </head>
 <body>
+    <!-- Status Panel -->
+    <div class="status-panel">
+        <div class="status-item">
+            <div class="status-icon success" id="step0Icon">✓</div>
+            <div class="status-text">JS Load</div>
+        </div>
+        <div class="status-item">
+            <div class="status-icon pending" id="step1Icon">○</div>
+            <div class="status-text">SDK</div>
+        </div>
+        <div class="status-item">
+            <div class="status-icon pending" id="step2Icon">○</div>
+            <div class="status-text">Backend</div>
+        </div>
+        <div class="status-item">
+            <div class="status-icon pending" id="step3Icon">○</div>
+            <div class="status-text">AuthToken</div>
+        </div>
+        <div class="status-item">
+            <div class="status-icon pending" id="step4Icon">○</div>
+            <div class="status-text">SDK Init</div>
+        </div>
+        <div class="status-item">
+            <div class="status-icon pending" id="step5Icon">○</div>
+            <div class="status-text">Ready</div>
+        </div>
+        <div class="status-item">
+            <div class="status-icon pending" id="step6Icon">○</div>
+            <div class="status-text">Connect</div>
+        </div>
+        <div class="status-item">
+            <div class="status-icon pending" id="step7Icon">○</div>
+            <div class="status-text">Device</div>
+        </div>
+    </div>
+
     <div class="status-bar">
         <div class="device-info">
             <div class="info-item">
@@ -467,22 +555,18 @@
                         <button class="pattern-btn" id="patternPulse" disabled>
                             <span class="pattern-icon">📳</span>
                             <span>Pulse</span>
-                            <span style="font-size: 9px; color: #888;">⚡</span>
                         </button>
                         <button class="pattern-btn" id="patternWave" disabled>
                             <span class="pattern-icon">〰️</span>
                             <span>Wave</span>
-                            <span style="font-size: 9px; color: #888;">⚡</span>
                         </button>
                         <button class="pattern-btn" id="patternFireworks" disabled>
                             <span class="pattern-icon">✨</span>
                             <span>Fireworks</span>
-                            <span style="font-size: 9px; color: #888;">⚡</span>
                         </button>
                         <button class="pattern-btn" id="patternEarthquake" disabled>
                             <span class="pattern-icon">━━━</span>
                             <span>Earthquake</span>
-                            <span style="font-size: 9px; color: #555;">—</span>
                         </button>
                     </div>
                 </div>
@@ -493,59 +577,39 @@
     </div>
 
     <script>
-        // ==================== DEBUGGING POP-UPS ====================
-        function showDebugAlert(title, message, autoClose = true) {
-            const alertDiv = document.createElement('div');
-            alertDiv.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: #1a1a1a;
-                border: 2px solid #ff1493;
-                border-radius: 12px;
-                padding: 24px;
-                z-index: 9999;
-                max-width: 300px;
-                text-align: center;
-                color: #fff;
-                font-family: -apple-system, sans-serif;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-            `;
-            
-            alertDiv.innerHTML = `
-                <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: #ff1493;">${title}</div>
-                <div style="font-size: 14px; color: #aaa; margin-bottom: 16px;">${message}</div>
-                <button onclick="this.parentElement.remove()" style="background: #ff1493; border: none; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">OK</button>
-            `;
-            
-            document.body.appendChild(alertDiv);
-            
-            if (autoClose) {
-                setTimeout(() => {
-                    if (alertDiv.parentElement) alertDiv.remove();
-                }, 2000);
+        // ==================== STATUS PANEL ====================
+        function updateStatus(stepNum, success) {
+            const icon = document.getElementById(`step${stepNum}Icon`);
+            if (icon) {
+                if (success === null) {
+                    icon.textContent = '○';
+                    icon.className = 'status-icon pending';
+                } else if (success) {
+                    icon.textContent = '✓';
+                    icon.className = 'status-icon success';
+                } else {
+                    icon.textContent = '✗';
+                    icon.className = 'status-icon error';
+                }
             }
         }
 
         // ==================== CONFIGURATION ====================
-        // EERO VERSION - Uses public IP
         const BACKEND_URL = 'http://100.111.160.83:3000/api/get-auth-token';
         
-        console.log('🚀 Lovense Voice Control App (EERO VERSION)');
+        console.log('🚀 Lovense Voice Control App (TAILSCALE VERSION)');
         console.log('📱 Backend: ' + BACKEND_URL);
-        showDebugAlert('✅ Step 0', 'App JS loaded');
 
-        // Check if SDK script loaded
+        // Check if SDK is available
         setTimeout(() => {
             if (typeof LovenseBasicSdk !== 'undefined') {
                 console.log('✅ SDK LOADED');
-                showDebugAlert('✅ Step 1', 'SDK script loaded');
+                updateStatus(1, true);
             } else {
                 console.error('❌ SDK NOT LOADED');
-                showDebugAlert('❌ Step 1 FAILED', 'SDK script did not load', false);
+                updateStatus(1, false);
             }
-        }, 1000);
+        }, 500);
 
         // ==================== State ====================
         let state = {
@@ -595,62 +659,43 @@
 
         // ==================== Get AuthToken from Backend ====================
         async function getAuthTokenFromBackend() {
-            console.log('📍 Step 2: Calling backend...');
-            showDebugAlert('📍 Step 2', 'Calling backend API');
-            
+            updateStatus(2, null);
             try {
-                console.log('📍 Fetching from: ' + BACKEND_URL);
                 const response = await fetch(BACKEND_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
-                console.log('📍 Backend response status: ' + response.status);
-                showDebugAlert('✅ Step 2b', 'Backend responded: ' + response.status);
-
                 if (!response.ok) {
-                    console.error('❌ Backend error:', response.status);
-                    showDebugAlert('❌ Step 2 FAILED', 'Backend error: ' + response.status, false);
-                    showError('Failed to connect to backend');
+                    updateStatus(2, false);
+                    showError('Backend error: ' + response.status);
                     return null;
                 }
 
                 const data = await response.json();
-                console.log('✅ authToken received:', data.authToken ? 'Success' : 'Failed');
-                
                 if (data.success && data.authToken) {
-                    showDebugAlert('✅ Step 2c', 'authToken received from backend');
+                    updateStatus(2, true);
+                    updateStatus(3, true);
                     return data.authToken;
                 } else {
-                    showDebugAlert('❌ Step 2c FAILED', 'No authToken in response', false);
-                    showError('Failed to get authToken from backend');
+                    updateStatus(2, false);
+                    showError('No authToken in response');
                     return null;
                 }
             } catch (error) {
-                console.error('❌ Backend connection error:', error);
-                showDebugAlert('❌ Step 2 ERROR', error.message, false);
-                showError('Cannot reach backend. Check Eero port forwarding.');
+                updateStatus(2, false);
+                showError('Cannot reach backend');
                 return null;
             }
         }
 
         // ==================== Initialize SDK ====================
         async function initializeLovenseSdk() {
-            console.log('📍 Initializing Lovense SDK...');
-            showDebugAlert('📍 Step 3', 'Getting authToken from backend');
-            
-            // Get authToken from backend first
             const authToken = await getAuthTokenFromBackend();
-            if (!authToken) {
-                console.error('❌ Could not get authToken');
-                return;
-            }
+            if (!authToken) return;
 
             state.authToken = authToken;
-            console.log('✅ authToken obtained, creating SDK instance...');
-            showDebugAlert('✅ Step 4', 'Creating SDK instance');
+            updateStatus(4, null);
 
             try {
                 const sdk = new LovenseBasicSdk({
@@ -659,42 +704,31 @@
                     uid: state.uid,
                 });
 
-                console.log('✅ SDK instance created');
-                showDebugAlert('✅ Step 5', 'SDK instance created');
+                updateStatus(4, true);
 
                 sdk.on('ready', () => {
-                    console.log('✅ SDK ready event triggered');
-                    showDebugAlert('✅ Step 6', 'SDK ready - connecting to device');
+                    updateStatus(5, true);
                     setupSdk(sdk);
                 });
 
                 sdk.on('sdkError', (data) => {
-                    console.error('❌ SDK Error:', data.code, data.message);
-                    showDebugAlert('❌ SDK ERROR', data.code + ': ' + data.message, false);
+                    updateStatus(5, false);
                     showError('SDK Error: ' + data.message);
                 });
 
             } catch (error) {
-                console.error('❌ SDK initialization error:', error);
-                showDebugAlert('❌ Step 4 ERROR', error.message, false);
-                showError('Failed to initialize SDK: ' + error.message);
+                updateStatus(4, false);
+                showError('Failed to initialize SDK');
             }
         }
 
         // ==================== Setup SDK ====================
         function setupSdk(sdk) {
             state.sdk = sdk;
-            console.log('✅ Setting up SDK listeners...');
-
-            sdk.on('appStatusChange', (status) => {
-                updateConnectionStatus(status);
-            });
+            updateStatus(6, null);
 
             sdk.on('toyOnlineChange', (online) => {
-                console.log('Device online status:', online);
-                if (online) {
-                    showDebugAlert('✅ Step 7', 'Device is online!');
-                }
+                if (online) updateStatus(7, true);
                 updateConnectionStatus(online);
             });
 
@@ -703,15 +737,12 @@
                 updateDeviceInfo();
             });
 
-            // Get initial toys
             const toys = sdk.getOnlineToys();
             if (toys && toys.length > 0) {
                 state.onlineToys = toys;
-                showDebugAlert('✅ Step 7', 'Device found!');
+                updateStatus(7, true);
                 updateConnectionStatus(true);
             } else {
-                console.log('No toys found yet, checking connection...');
-                showDebugAlert('📍 Step 7', 'Waiting for device...');
                 checkConnection();
             }
         }
@@ -720,9 +751,7 @@
             if (state.sdk) {
                 const online = state.sdk.checkToyOnline();
                 updateConnectionStatus(online);
-                if (!online) {
-                    setTimeout(checkConnection, 2000);
-                }
+                if (!online) setTimeout(checkConnection, 2000);
             }
         }
 
@@ -730,7 +759,6 @@
             state.connected = connected;
             connectionDot.classList.toggle('disconnected', !connected);
             connectionStatus.textContent = connected ? 'Connected' : 'Disconnected';
-
             loadingScreen.classList.toggle('hidden', connected);
             controlSection.classList.toggle('hidden', !connected);
 
@@ -755,21 +783,15 @@
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
-                
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
-                
                 oscillator.frequency.value = 800;
                 oscillator.type = 'sine';
-                
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                
                 oscillator.start(audioContext.currentTime);
                 oscillator.stop(audioContext.currentTime + 0.15);
-            } catch (e) {
-                // Audio context not available
-            }
+            } catch (e) {}
         }
 
         // ==================== Voice Control ====================
@@ -793,19 +815,13 @@
             recognition.onresult = (event) => {
                 let interimTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcriptSegment = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        processVoiceCommand(transcriptSegment);
+                        processVoiceCommand(event.results[i][0].transcript);
                     } else {
-                        interimTranscript += transcriptSegment;
+                        interimTranscript += event.results[i][0].transcript;
                     }
                 }
                 transcript.textContent = interimTranscript || 'Processing...';
-            };
-
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-                transcript.textContent = 'Error: ' + event.error;
             };
 
             recognition.onend = () => {
@@ -831,87 +847,30 @@
 
         function processVoiceCommand(command) {
             const cmd = command.toLowerCase().trim();
-            console.log('Voice command:', cmd);
-
-            if (cmd.includes('start')) {
-                sendCommand('start');
-            } else if (cmd.includes('stop')) {
-                sendCommand('stop');
-            } else if (cmd.includes('harder') || cmd.includes('increase')) {
-                increaseIntensity();
-            } else if (cmd.includes('softer') || cmd.includes('decrease')) {
-                decreaseIntensity();
-            } else if (cmd.includes('speed up') || cmd.includes('faster') || cmd.includes('go faster')) {
-                increaseSpeed();
-            } else if (cmd.includes('slow down') || cmd.includes('slower') || cmd.includes('go slower')) {
-                decreaseSpeed();
-            } else if (cmd.includes('pulse')) {
-                state.currentPattern = 'pulse';
-                speedSection.style.display = 'flex';
-                speedSlider.disabled = false;
-                cmdButtons.faster.disabled = false;
-                cmdButtons.slower.disabled = false;
-                sendPattern('pulse');
-            } else if (cmd.includes('wave')) {
-                state.currentPattern = 'wave';
-                speedSection.style.display = 'flex';
-                speedSlider.disabled = false;
-                cmdButtons.faster.disabled = false;
-                cmdButtons.slower.disabled = false;
-                sendPattern('wave');
-            } else if (cmd.includes('firework')) {
-                state.currentPattern = 'fireworks';
-                speedSection.style.display = 'flex';
-                speedSlider.disabled = false;
-                cmdButtons.faster.disabled = false;
-                cmdButtons.slower.disabled = false;
-                sendPattern('fireworks');
-            } else if (cmd.includes('earthquake')) {
-                state.currentPattern = 'earthquake';
-                speedSection.style.display = 'none';
-                speedSlider.disabled = true;
-                cmdButtons.faster.disabled = true;
-                cmdButtons.slower.disabled = true;
-                sendPattern('earthquake');
-            } else {
-                showStatus('Command: "' + command.substring(0, 30) + '..."');
-            }
+            if (cmd.includes('start')) sendCommand('start');
+            else if (cmd.includes('stop')) sendCommand('stop');
+            else if (cmd.includes('harder')) increaseIntensity();
+            else if (cmd.includes('softer')) decreaseIntensity();
+            else if (cmd.includes('faster')) increaseSpeed();
+            else if (cmd.includes('slower')) decreaseSpeed();
+            else if (cmd.includes('pulse')) { state.currentPattern = 'pulse'; speedSection.style.display = 'flex'; sendPattern('pulse'); }
+            else if (cmd.includes('wave')) { state.currentPattern = 'wave'; speedSection.style.display = 'flex'; sendPattern('wave'); }
+            else if (cmd.includes('firework')) { state.currentPattern = 'fireworks'; speedSection.style.display = 'flex'; sendPattern('fireworks'); }
+            else if (cmd.includes('earthquake')) { state.currentPattern = 'earthquake'; speedSection.style.display = 'none'; sendPattern('earthquake'); }
         }
 
-        // ==================== Device Commands ====================
         function sendCommand(type) {
-            if (!state.sdk || state.onlineToys.length === 0) {
-                showError('No device connected');
-                return;
-            }
-
+            if (!state.sdk || state.onlineToys.length === 0) { showError('No device connected'); return; }
             try {
-                if (type === 'start') {
-                    state.sdk.sendToyCommand({ vibrate: state.currentIntensity || 5 });
-                    showStatus('Started');
-                } else if (type === 'stop') {
-                    state.sdk.stopToyAction();
-                    showStatus('Stopped');
-                }
-            } catch (error) {
-                console.error('Command error:', error);
-                showError('Failed to send command');
-            }
+                if (type === 'start') { state.sdk.sendToyCommand({ vibrate: state.currentIntensity || 5 }); showStatus('Started'); }
+                else if (type === 'stop') { state.sdk.stopToyAction(); showStatus('Stopped'); }
+            } catch (error) { showError('Failed to send command'); }
         }
 
         function sendPattern(pattern) {
-            if (!state.sdk || state.onlineToys.length === 0) {
-                showError('No device connected');
-                return;
-            }
-
-            try {
-                state.sdk.sendPresetCommand({ name: pattern, time: 0 });
-                showStatus(`Pattern: ${pattern}`);
-            } catch (error) {
-                console.error('Pattern error:', error);
-                showError('Failed to send pattern');
-            }
+            if (!state.sdk || state.onlineToys.length === 0) { showError('No device connected'); return; }
+            try { state.sdk.sendPresetCommand({ name: pattern, time: 0 }); showStatus(`Pattern: ${pattern}`); }
+            catch (error) { showError('Failed to send pattern'); }
         }
 
         function increaseIntensity() {
@@ -919,14 +878,9 @@
                 state.currentIntensity++;
                 intensitySlider.value = state.currentIntensity;
                 intensityValue.textContent = state.currentIntensity;
-                if (state.sdk) {
-                    state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
-                }
+                if (state.sdk) state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
                 showStatus(`Intensity: ${state.currentIntensity}/20`);
-            } else {
-                playBeep();
-                showStatus('⚠️ Maximum intensity reached');
-            }
+            } else { playBeep(); showStatus('Maximum intensity'); }
         }
 
         function decreaseIntensity() {
@@ -934,98 +888,46 @@
                 state.currentIntensity--;
                 intensitySlider.value = state.currentIntensity;
                 intensityValue.textContent = state.currentIntensity;
-                if (state.sdk) {
-                    state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
-                }
+                if (state.sdk) state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
                 showStatus(`Intensity: ${state.currentIntensity}/20`);
-            } else {
-                playBeep();
-                showStatus('⚠️ Minimum intensity reached');
-            }
+            } else { playBeep(); showStatus('Minimum intensity'); }
         }
 
         function increaseSpeed() {
-            if (state.currentPattern === 'earthquake') {
-                showStatus('Speed control not available for Earthquake');
-                return;
-            }
+            if (state.currentPattern === 'earthquake') return;
             if (state.currentSpeed < 100) {
                 state.currentSpeed += 10;
                 speedSlider.value = state.currentSpeed;
                 speedValue.textContent = state.currentSpeed + '%';
                 showStatus(`Speed: ${state.currentSpeed}%`);
-            } else {
-                playBeep();
-                showStatus('⚠️ Maximum speed reached');
             }
         }
 
         function decreaseSpeed() {
-            if (state.currentPattern === 'earthquake') {
-                showStatus('Speed control not available for Earthquake');
-                return;
-            }
+            if (state.currentPattern === 'earthquake') return;
             if (state.currentSpeed > 0) {
                 state.currentSpeed -= 10;
                 speedSlider.value = state.currentSpeed;
                 speedValue.textContent = state.currentSpeed + '%';
                 showStatus(`Speed: ${state.currentSpeed}%`);
-            } else {
-                playBeep();
-                showStatus('⚠️ Minimum speed reached');
             }
         }
 
-        // ==================== UI Event Listeners ====================
         intensitySlider.addEventListener('input', (e) => {
             state.currentIntensity = parseInt(e.target.value);
             intensityValue.textContent = state.currentIntensity;
-            if (state.sdk && state.currentIntensity > 0) {
-                state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
-            }
+            if (state.sdk && state.currentIntensity > 0) state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
         });
 
         speedSlider.addEventListener('input', (e) => {
             state.currentSpeed = parseInt(e.target.value);
             speedValue.textContent = state.currentSpeed + '%';
-            showStatus(`Speed: ${state.currentSpeed}%`);
         });
 
-        patternButtons.pulse.addEventListener('click', () => {
-            state.currentPattern = 'pulse';
-            speedSection.style.display = 'flex';
-            speedSlider.disabled = false;
-            cmdButtons.faster.disabled = false;
-            cmdButtons.slower.disabled = false;
-            sendPattern('pulse');
-        });
-
-        patternButtons.wave.addEventListener('click', () => {
-            state.currentPattern = 'wave';
-            speedSection.style.display = 'flex';
-            speedSlider.disabled = false;
-            cmdButtons.faster.disabled = false;
-            cmdButtons.slower.disabled = false;
-            sendPattern('wave');
-        });
-
-        patternButtons.fireworks.addEventListener('click', () => {
-            state.currentPattern = 'fireworks';
-            speedSection.style.display = 'flex';
-            speedSlider.disabled = false;
-            cmdButtons.faster.disabled = false;
-            cmdButtons.slower.disabled = false;
-            sendPattern('fireworks');
-        });
-
-        patternButtons.earthquake.addEventListener('click', () => {
-            state.currentPattern = 'earthquake';
-            speedSection.style.display = 'none';
-            speedSlider.disabled = true;
-            cmdButtons.faster.disabled = true;
-            cmdButtons.slower.disabled = true;
-            sendPattern('earthquake');
-        });
+        patternButtons.pulse.addEventListener('click', () => { state.currentPattern = 'pulse'; speedSection.style.display = 'flex'; sendPattern('pulse'); });
+        patternButtons.wave.addEventListener('click', () => { state.currentPattern = 'wave'; speedSection.style.display = 'flex'; sendPattern('wave'); });
+        patternButtons.fireworks.addEventListener('click', () => { state.currentPattern = 'fireworks'; speedSection.style.display = 'flex'; sendPattern('fireworks'); });
+        patternButtons.earthquake.addEventListener('click', () => { state.currentPattern = 'earthquake'; speedSection.style.display = 'none'; sendPattern('earthquake'); });
 
         cmdButtons.start.addEventListener('click', () => sendCommand('start'));
         cmdButtons.stop.addEventListener('click', () => sendCommand('stop'));
@@ -1034,7 +936,6 @@
         cmdButtons.faster.addEventListener('click', () => increaseSpeed());
         cmdButtons.slower.addEventListener('click', () => decreaseSpeed());
 
-        // ==================== Utility Functions ====================
         function showStatus(message) {
             statusMessage.textContent = message;
             statusMessage.classList.remove('hidden');
@@ -1047,488 +948,6 @@
             setTimeout(() => statusMessage.classList.add('hidden'), 5000);
         }
 
-        // ==================== Initialize ====================
-        document.addEventListener('DOMContentLoaded', initializeLovenseSdk);
-    </script>
-
-        // ==================== State ====================
-        let state = {
-            sdk: null,
-            connected: false,
-            listening: false,
-            currentIntensity: 5,
-            currentSpeed: 50,
-            currentPattern: null,
-            onlineToys: [],
-            authToken: null,
-            uid: 'aocouple'
-        };
-
-        // ==================== UI Elements ====================
-        const loadingScreen = document.getElementById('loadingScreen');
-        const controlSection = document.getElementById('controlSection');
-        const voiceBtn = document.getElementById('voiceBtn');
-        const waveform = document.getElementById('waveform');
-        const transcript = document.getElementById('transcript');
-        const intensitySlider = document.getElementById('intensitySlider');
-        const intensityValue = document.getElementById('intensityValue');
-        const speedSlider = document.getElementById('speedSlider');
-        const speedValue = document.getElementById('speedValue');
-        const speedSection = document.getElementById('speedSection');
-        const connectionDot = document.getElementById('connectionDot');
-        const connectionStatus = document.getElementById('connectionStatus');
-        const deviceName = document.getElementById('deviceName');
-        const deviceBattery = document.getElementById('deviceBattery');
-        const statusMessage = document.getElementById('statusMessage');
-
-        const patternButtons = {
-            pulse: document.getElementById('patternPulse'),
-            wave: document.getElementById('patternWave'),
-            fireworks: document.getElementById('patternFireworks'),
-            earthquake: document.getElementById('patternEarthquake'),
-        };
-
-        const cmdButtons = {
-            start: document.getElementById('cmdStart'),
-            stop: document.getElementById('cmdStop'),
-            harder: document.getElementById('cmdHarder'),
-            softer: document.getElementById('cmdSofter'),
-            faster: document.getElementById('cmdFaster'),
-            slower: document.getElementById('cmdSlower'),
-        };
-
-        // ==================== Get AuthToken from Backend ====================
-        async function getAuthTokenFromBackend() {
-            console.log('📍 Fetching authToken from backend...');
-            try {
-                const response = await fetch(BACKEND_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    console.error('❌ Backend error:', response.status);
-                    showError('Failed to connect to backend');
-                    return null;
-                }
-
-                const data = await response.json();
-                console.log('✅ authToken received:', data.authToken ? 'Success' : 'Failed');
-                
-                if (data.success && data.authToken) {
-                    return data.authToken;
-                } else {
-                    showError('Failed to get authToken from backend');
-                    return null;
-                }
-            } catch (error) {
-                console.error('❌ Backend connection error:', error);
-                showError('Cannot reach backend. Check Eero port forwarding.');
-                return null;
-            }
-        }
-
-        // ==================== Initialize SDK ====================
-        async function initializeLovenseSdk() {
-            console.log('📍 Initializing Lovense SDK...');
-            
-            // Get authToken from backend first
-            const authToken = await getAuthTokenFromBackend();
-            if (!authToken) {
-                console.error('❌ Could not get authToken');
-                return;
-            }
-
-            state.authToken = authToken;
-            console.log('✅ authToken obtained, creating SDK instance...');
-
-            try {
-                const sdk = new LovenseBasicSdk({
-                    platform: 'web',
-                    authToken: authToken,
-                    uid: state.uid,
-                });
-
-                console.log('✅ SDK instance created');
-
-                sdk.on('ready', () => {
-                    console.log('✅ SDK ready event triggered');
-                    setupSdk(sdk);
-                });
-
-                sdk.on('sdkError', (data) => {
-                    console.error('❌ SDK Error:', data.code, data.message);
-                    showError('SDK Error: ' + data.message);
-                });
-
-            } catch (error) {
-                console.error('❌ SDK initialization error:', error);
-                showError('Failed to initialize SDK: ' + error.message);
-            }
-        }
-
-        // ==================== Setup SDK ====================
-        function setupSdk(sdk) {
-            state.sdk = sdk;
-            console.log('✅ Setting up SDK listeners...');
-
-            sdk.on('appStatusChange', (status) => {
-                updateConnectionStatus(status);
-            });
-
-            sdk.on('toyOnlineChange', (online) => {
-                updateConnectionStatus(online);
-            });
-
-            sdk.on('toyInfoChange', (toys) => {
-                state.onlineToys = Array.isArray(toys) ? toys : [toys];
-                updateDeviceInfo();
-            });
-
-            // Get initial toys
-            const toys = sdk.getOnlineToys();
-            if (toys && toys.length > 0) {
-                state.onlineToys = toys;
-                updateConnectionStatus(true);
-            } else {
-                checkConnection();
-            }
-        }
-
-        function checkConnection() {
-            if (state.sdk) {
-                const online = state.sdk.checkToyOnline();
-                updateConnectionStatus(online);
-                if (!online) {
-                    setTimeout(checkConnection, 2000);
-                }
-            }
-        }
-
-        function updateConnectionStatus(connected) {
-            state.connected = connected;
-            connectionDot.classList.toggle('disconnected', !connected);
-            connectionStatus.textContent = connected ? 'Connected' : 'Disconnected';
-
-            loadingScreen.classList.toggle('hidden', connected);
-            controlSection.classList.toggle('hidden', !connected);
-
-            voiceBtn.disabled = !connected;
-            intensitySlider.disabled = !connected;
-            speedSlider.disabled = !connected;
-            Object.values(patternButtons).forEach(btn => btn.disabled = !connected);
-            Object.values(cmdButtons).forEach(btn => btn.disabled = !connected);
-        }
-
-        function updateDeviceInfo() {
-            if (state.onlineToys.length > 0) {
-                const device = state.onlineToys[0];
-                deviceName.textContent = device.nickname || device.name;
-                deviceBattery.textContent = `${device.battery}%`;
-            }
-        }
-
-        // ==================== Audio Feedback ====================
-        function playBeep() {
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.15);
-            } catch (e) {
-                // Audio context not available
-            }
-        }
-
-        // ==================== Voice Control ====================
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null;
-
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.language = 'en-US';
-            recognition.continuous = true;
-            recognition.interimResults = true;
-
-            recognition.onstart = () => {
-                state.listening = true;
-                voiceBtn.classList.add('listening');
-                waveform.classList.add('active');
-                transcript.textContent = 'Listening...';
-                transcript.classList.add('active');
-            };
-
-            recognition.onresult = (event) => {
-                let interimTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcriptSegment = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        processVoiceCommand(transcriptSegment);
-                    } else {
-                        interimTranscript += transcriptSegment;
-                    }
-                }
-                transcript.textContent = interimTranscript || 'Processing...';
-            };
-
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-                transcript.textContent = 'Error: ' + event.error;
-            };
-
-            recognition.onend = () => {
-                state.listening = false;
-                voiceBtn.classList.remove('listening');
-                waveform.classList.remove('active');
-                transcript.classList.remove('active');
-                transcript.textContent = '';
-            };
-        }
-
-        voiceBtn.addEventListener('click', () => {
-            if (!recognition) {
-                showError('Speech recognition not supported');
-                return;
-            }
-            if (state.listening) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
-        });
-
-        function processVoiceCommand(command) {
-            const cmd = command.toLowerCase().trim();
-            console.log('Voice command:', cmd);
-
-            if (cmd.includes('start')) {
-                sendCommand('start');
-            } else if (cmd.includes('stop')) {
-                sendCommand('stop');
-            } else if (cmd.includes('harder') || cmd.includes('increase')) {
-                increaseIntensity();
-            } else if (cmd.includes('softer') || cmd.includes('decrease')) {
-                decreaseIntensity();
-            } else if (cmd.includes('speed up') || cmd.includes('faster') || cmd.includes('go faster')) {
-                increaseSpeed();
-            } else if (cmd.includes('slow down') || cmd.includes('slower') || cmd.includes('go slower')) {
-                decreaseSpeed();
-            } else if (cmd.includes('pulse')) {
-                state.currentPattern = 'pulse';
-                speedSection.style.display = 'flex';
-                speedSlider.disabled = false;
-                cmdButtons.faster.disabled = false;
-                cmdButtons.slower.disabled = false;
-                sendPattern('pulse');
-            } else if (cmd.includes('wave')) {
-                state.currentPattern = 'wave';
-                speedSection.style.display = 'flex';
-                speedSlider.disabled = false;
-                cmdButtons.faster.disabled = false;
-                cmdButtons.slower.disabled = false;
-                sendPattern('wave');
-            } else if (cmd.includes('firework')) {
-                state.currentPattern = 'fireworks';
-                speedSection.style.display = 'flex';
-                speedSlider.disabled = false;
-                cmdButtons.faster.disabled = false;
-                cmdButtons.slower.disabled = false;
-                sendPattern('fireworks');
-            } else if (cmd.includes('earthquake')) {
-                state.currentPattern = 'earthquake';
-                speedSection.style.display = 'none';
-                speedSlider.disabled = true;
-                cmdButtons.faster.disabled = true;
-                cmdButtons.slower.disabled = true;
-                sendPattern('earthquake');
-            } else {
-                showStatus('Command: "' + command.substring(0, 30) + '..."');
-            }
-        }
-
-        // ==================== Device Commands ====================
-        function sendCommand(type) {
-            if (!state.sdk || state.onlineToys.length === 0) {
-                showError('No device connected');
-                return;
-            }
-
-            try {
-                if (type === 'start') {
-                    state.sdk.sendToyCommand({ vibrate: state.currentIntensity || 5 });
-                    showStatus('Started');
-                } else if (type === 'stop') {
-                    state.sdk.stopToyAction();
-                    showStatus('Stopped');
-                }
-            } catch (error) {
-                console.error('Command error:', error);
-                showError('Failed to send command');
-            }
-        }
-
-        function sendPattern(pattern) {
-            if (!state.sdk || state.onlineToys.length === 0) {
-                showError('No device connected');
-                return;
-            }
-
-            try {
-                state.sdk.sendPresetCommand({ name: pattern, time: 0 });
-                showStatus(`Pattern: ${pattern}`);
-            } catch (error) {
-                console.error('Pattern error:', error);
-                showError('Failed to send pattern');
-            }
-        }
-
-        function increaseIntensity() {
-            if (state.currentIntensity < 20) {
-                state.currentIntensity++;
-                intensitySlider.value = state.currentIntensity;
-                intensityValue.textContent = state.currentIntensity;
-                if (state.sdk) {
-                    state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
-                }
-                showStatus(`Intensity: ${state.currentIntensity}/20`);
-            } else {
-                playBeep();
-                showStatus('⚠️ Maximum intensity reached');
-            }
-        }
-
-        function decreaseIntensity() {
-            if (state.currentIntensity > 0) {
-                state.currentIntensity--;
-                intensitySlider.value = state.currentIntensity;
-                intensityValue.textContent = state.currentIntensity;
-                if (state.sdk) {
-                    state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
-                }
-                showStatus(`Intensity: ${state.currentIntensity}/20`);
-            } else {
-                playBeep();
-                showStatus('⚠️ Minimum intensity reached');
-            }
-        }
-
-        function increaseSpeed() {
-            if (state.currentPattern === 'earthquake') {
-                showStatus('Speed control not available for Earthquake');
-                return;
-            }
-            if (state.currentSpeed < 100) {
-                state.currentSpeed += 10;
-                speedSlider.value = state.currentSpeed;
-                speedValue.textContent = state.currentSpeed + '%';
-                showStatus(`Speed: ${state.currentSpeed}%`);
-            } else {
-                playBeep();
-                showStatus('⚠️ Maximum speed reached');
-            }
-        }
-
-        function decreaseSpeed() {
-            if (state.currentPattern === 'earthquake') {
-                showStatus('Speed control not available for Earthquake');
-                return;
-            }
-            if (state.currentSpeed > 0) {
-                state.currentSpeed -= 10;
-                speedSlider.value = state.currentSpeed;
-                speedValue.textContent = state.currentSpeed + '%';
-                showStatus(`Speed: ${state.currentSpeed}%`);
-            } else {
-                playBeep();
-                showStatus('⚠️ Minimum speed reached');
-            }
-        }
-
-        // ==================== UI Event Listeners ====================
-        intensitySlider.addEventListener('input', (e) => {
-            state.currentIntensity = parseInt(e.target.value);
-            intensityValue.textContent = state.currentIntensity;
-            if (state.sdk && state.currentIntensity > 0) {
-                state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
-            }
-        });
-
-        speedSlider.addEventListener('input', (e) => {
-            state.currentSpeed = parseInt(e.target.value);
-            speedValue.textContent = state.currentSpeed + '%';
-            showStatus(`Speed: ${state.currentSpeed}%`);
-        });
-
-        patternButtons.pulse.addEventListener('click', () => {
-            state.currentPattern = 'pulse';
-            speedSection.style.display = 'flex';
-            speedSlider.disabled = false;
-            cmdButtons.faster.disabled = false;
-            cmdButtons.slower.disabled = false;
-            sendPattern('pulse');
-        });
-
-        patternButtons.wave.addEventListener('click', () => {
-            state.currentPattern = 'wave';
-            speedSection.style.display = 'flex';
-            speedSlider.disabled = false;
-            cmdButtons.faster.disabled = false;
-            cmdButtons.slower.disabled = false;
-            sendPattern('wave');
-        });
-
-        patternButtons.fireworks.addEventListener('click', () => {
-            state.currentPattern = 'fireworks';
-            speedSection.style.display = 'flex';
-            speedSlider.disabled = false;
-            cmdButtons.faster.disabled = false;
-            cmdButtons.slower.disabled = false;
-            sendPattern('fireworks');
-        });
-
-        patternButtons.earthquake.addEventListener('click', () => {
-            state.currentPattern = 'earthquake';
-            speedSection.style.display = 'none';
-            speedSlider.disabled = true;
-            cmdButtons.faster.disabled = true;
-            cmdButtons.slower.disabled = true;
-            sendPattern('earthquake');
-        });
-
-        cmdButtons.start.addEventListener('click', () => sendCommand('start'));
-        cmdButtons.stop.addEventListener('click', () => sendCommand('stop'));
-        cmdButtons.harder.addEventListener('click', () => increaseIntensity());
-        cmdButtons.softer.addEventListener('click', () => decreaseIntensity());
-        cmdButtons.faster.addEventListener('click', () => increaseSpeed());
-        cmdButtons.slower.addEventListener('click', () => decreaseSpeed());
-
-        // ==================== Utility Functions ====================
-        function showStatus(message) {
-            statusMessage.textContent = message;
-            statusMessage.classList.remove('hidden');
-            setTimeout(() => statusMessage.classList.add('hidden'), 3000);
-        }
-
-        function showError(message) {
-            statusMessage.textContent = '❌ ' + message;
-            statusMessage.classList.remove('hidden');
-            setTimeout(() => statusMessage.classList.add('hidden'), 5000);
-        }
-
-        // ==================== Initialize ====================
         document.addEventListener('DOMContentLoaded', initializeLovenseSdk);
     </script>
 </body>
