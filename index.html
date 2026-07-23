@@ -414,8 +414,8 @@
             <div class="spinner"></div>
             <div class="loading-text">
                 Connecting to backend...<br>
-                <span style="font-size: 12px; color: #666; margin-top: 8px;">10.0.0.85:3000</span>
-                <span style="font-size: 11px; color: #555; margin-top: 12px;">v1.0 - MAC TEST</span>
+                <span style="font-size: 12px; color: #666; margin-top: 8px;">100.111.160.83:3000</span>
+                <span style="font-size: 11px; color: #555; margin-top: 12px;">v1.0 - TAILSCALE</span>
             </div>
         </div>
 
@@ -529,8 +529,8 @@
         }
 
         // ==================== CONFIGURATION ====================
-        // MAC TEST VERSION - Uses Mac's local IP
-        const BACKEND_URL = 'http://10.0.0.85:3000/api/get-auth-token';
+        // EERO VERSION - Uses public IP
+        const BACKEND_URL = 'http://100.111.160.83:3000/api/get-auth-token';
         
         console.log('🚀 Lovense Voice Control App (EERO VERSION)');
         console.log('📱 Backend: ' + BACKEND_URL);
@@ -1533,4 +1533,3 @@
     </script>
 </body>
 </html>
-                
