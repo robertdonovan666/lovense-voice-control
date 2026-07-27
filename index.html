@@ -101,7 +101,7 @@
 </head>
 <body>
     <div class="status-panel">
-        <div class="status-version">v1.7 - HTTPS</div>
+        <div class="status-version">v1.8 - HTTPS</div>
         <div class="status-backend-version" id="backendVersionText">Backend: checking...</div>
         <div class="status-item"><div class="status-icon success" id="step0Icon">✓</div><div class="status-text">JS Load</div></div>
         <div class="status-item"><div class="status-icon pending" id="step1Icon">○</div><div class="status-text">SDK</div></div>
@@ -128,9 +128,14 @@
 
         <div class="status-item"><div class="status-icon pending" id="step3Icon">○</div><div class="status-text">AuthToken</div></div>
         <div class="status-item"><div class="status-icon pending" id="step4Icon">○</div><div class="status-text">SDK Init</div></div>
+        <div id="error4" class="status-error-msg"></div>
         <div class="status-item"><div class="status-icon pending" id="step5Icon">○</div><div class="status-text">Ready</div></div>
+        <div id="error5" class="status-error-msg"></div>
         <div class="status-item"><div class="status-icon pending" id="step6Icon">○</div><div class="status-text">Connect</div></div>
+        <div id="error6" class="status-error-msg"></div>
         <div class="status-item"><div class="status-icon pending" id="step7Icon">○</div><div class="status-text">Device</div></div>
+        <div id="error7" class="status-error-msg"></div>
+
     </div>
 
     <div class="status-bar">
@@ -150,7 +155,7 @@
     <div class="container">
         <div id="loadingScreen" class="loading-screen">
             <div class="spinner"></div>
-            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.7 - HTTPS</span></div>
+            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.8 - HTTPS</span></div>
         </div>
 
         <div id="controlSection" class="voice-section hidden">
@@ -216,7 +221,7 @@
         const HEALTH_URL = BACKEND_BASE + '/health';
         const BACKEND_URL = BACKEND_BASE + '/api/get-auth-token';
 
-        console.log('🚀 Lovense Voice Control App v1.7 (TAILSCALE VERSION)');
+        console.log('🚀 Lovense Voice Control App v1.8 (TAILSCALE VERSION)');
         console.log('📱 Backend: ' + BACKEND_URL);
 
         setTimeout(() => {
@@ -298,7 +303,7 @@
             updateStatus('4', null);
 
             try {
-                const sdk = new LovenseBasicSdk({ platform: 'web', authToken: authToken, uid: state.uid });
+                const sdk = new LovenseBasicSdk({ platform: 'aocouple', authToken: authToken, uid: state.uid });
                 updateStatus('4', true);
                 sdk.on('ready', () => { updateStatus('5', true); setupSdk(sdk); });
                 sdk.on('sdkError', (data) => { updateStatus('5', false, `SDK: ${data.code}`); showError('SDK Error: ' + data.message); });
