@@ -101,7 +101,7 @@
 </head>
 <body>
     <div class="status-panel">
-        <div class="status-version">v1.10 - HTTPS</div>
+        <div class="status-version">v1.11 - HTTPS</div>
         <div class="status-backend-version" id="backendVersionText">Backend: checking...</div>
         <div class="status-item"><div class="status-icon success" id="step0Icon">✓</div><div class="status-text">JS Load</div></div>
         <div class="status-item"><div class="status-icon pending" id="step1Icon">○</div><div class="status-text">SDK</div></div>
@@ -141,6 +141,12 @@
                 📱 Connect Toy (opens Lovense Remote)
             </button>
         </div>
+        <div id="qrCodeSection" class="hidden" style="background: #ffffff; border-radius: 12px; padding: 20px; margin-top: 20px; text-align: center; max-width: 280px;">
+            <div style="color: #333; font-size: 13px; font-weight: 600; margin-bottom: 4px;">Scan with a phone running Lovense Remote</div>
+            <div style="color: #888; font-size: 11px; margin-bottom: 12px;">(pair your toy to Remote via Bluetooth first)</div>
+            <img id="qrCodeImage" style="width: 200px; height: 200px;" />
+            <div id="qrCodeStatus" style="color: #ff1493; font-size: 11px; margin-top: 8px;"></div>
+        </div>
     </div>
 
     <div class="status-bar">
@@ -160,7 +166,7 @@
     <div class="container">
         <div id="loadingScreen" class="loading-screen">
             <div class="spinner"></div>
-            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.10 - HTTPS</span></div>
+            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.11 - HTTPS</span></div>
         </div>
 
         <div id="controlSection" class="voice-section hidden">
@@ -226,7 +232,7 @@
         const HEALTH_URL = BACKEND_BASE + '/health';
         const BACKEND_URL = BACKEND_BASE + '/api/get-auth-token';
 
-        console.log('🚀 Lovense Voice Control App v1.10 (TAILSCALE VERSION)');
+        console.log('🚀 Lovense Voice Control App v1.11 (TAILSCALE VERSION)');
         console.log('📱 Backend: ' + BACKEND_URL);
 
         setTimeout(() => {
@@ -338,6 +344,25 @@
                             btn.textContent = '📱 Connect Toy (opens Lovense Remote)';
                         }
                     });
+
+                    // Fetch and display QR code as the primary pairing method
+                    const qrSection = document.getElementById('qrCodeSection');
+                    const qrImage = document.getElementById('qrCodeImage');
+                    const qrStatus = document.getElementById('qrCodeStatus');
+                    qrStatus.textContent = 'Generating QR code...';
+                    qrSection.classList.remove('hidden');
+                    sdk.getQrcode().then((codeRes) => {
+                        console.log('QR code received:', codeRes);
+                        if (codeRes && codeRes.qrcodeUrl) {
+                            qrImage.src = codeRes.qrcodeUrl;
+                            qrStatus.textContent = 'Waiting for scan...';
+                        } else {
+                            qrStatus.textContent = 'No QR code returned';
+                        }
+                    }).catch((e) => {
+                        console.error('getQrcode error:', e);
+                        qrStatus.textContent = 'Error: ' + e.message;
+                    });
                 });
                 sdk.on('sdkError', (data) => { updateStatus('5', false, `SDK: ${data.code}`); showError('SDK Error: ' + data.message); });
             } catch (error) { updateStatus('4', false, error.message.substring(0, 15)); showError('Failed to initialize SDK'); }
@@ -351,6 +376,8 @@
                 if (state.connectTimeoutId) clearTimeout(state.connectTimeoutId);
                 const btn = document.getElementById('connectToyBtn');
                 if (btn) { btn.disabled = false; btn.textContent = status ? '✓ Remote App Connected' : '📱 Connect Toy (opens Lovense Remote)'; }
+                const qrStatus = document.getElementById('qrCodeStatus');
+                if (qrStatus) { qrStatus.textContent = status ? '✓ Connected!' : 'Waiting for scan...'; }
                 updateStatus('6', status);
             });
             sdk.on('toyOnlineChange', (online) => { if (online) updateStatus('7', true); updateConnectionStatus(online); });
