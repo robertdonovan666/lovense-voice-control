@@ -100,8 +100,9 @@
     </style>
 </head>
 <body>
-    <div class="status-panel">
-        <div class="status-version">v1.12 - HTTPS</div>
+    <button id="reopenPanelBtn" class="hidden" style="position: fixed; top: 10px; right: 10px; z-index: 10000; background: #ff1493; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">≡</button>
+    <div class="status-panel" id="statusPanel">
+        <div class="status-version">v1.17 - HTTPS</div>
         <div class="status-backend-version" id="backendVersionText">Backend: checking...</div>
         <div class="status-item"><div class="status-icon success" id="step0Icon">✓</div><div class="status-text">JS Load</div></div>
         <div class="status-item"><div class="status-icon pending" id="step1Icon">○</div><div class="status-text">SDK</div></div>
@@ -162,7 +163,7 @@
     <div class="container">
         <div id="loadingScreen" class="loading-screen">
             <div class="spinner"></div>
-            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.12 - HTTPS</span></div>
+            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.17 - HTTPS</span></div>
         </div>
 
         <div id="controlSection" class="voice-section hidden">
@@ -183,24 +184,33 @@
             </div>
             <div class="transcript" id="transcript"></div>
 
+            <div id="lastCommandBox" style="width: 100%; background: rgba(255,20,147,0.08); border: 1px solid rgba(255,20,147,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #ccc; margin-top: 4px;">
+                <span style="color: #888; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Last Command</span><br>
+                <span id="lastCommandText">— none yet —</span>
+            </div>
+
             <div class="controls">
                 <div class="slider-group">
-                    <div class="slider-label"><span>Intensity</span><span class="slider-value" id="intensityValue">5</span></div>
+                    <div class="slider-label"><span>Intensity (sent to toy)</span><span class="slider-value" id="intensityValue">5</span></div>
                     <input type="range" class="intensity-slider" id="intensitySlider" min="0" max="20" value="5" disabled>
                 </div>
 
                 <div class="slider-group" id="speedSection" style="display: none;">
-                    <div class="slider-label"><span>Speed</span><span class="slider-value" id="speedValue">50%</span></div>
+                    <div class="slider-label"><span>Speed (sent to toy)</span><span class="slider-value" id="speedValue">50%</span></div>
                     <input type="range" class="intensity-slider" id="speedSlider" min="0" max="100" value="50" disabled>
                 </div>
 
                 <div style="width: 100%; margin-top: 8px;">
-                    <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Patterns</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Patterns</span>
+                        <span id="activePatternLabel" style="font-size: 11px; color: #ff1493; font-weight: 600;">None active</span>
+                    </div>
                     <div class="patterns-grid">
                         <button class="pattern-btn" id="patternPulse" disabled><span class="pattern-icon">📳</span><span>Pulse</span></button>
                         <button class="pattern-btn" id="patternWave" disabled><span class="pattern-icon">〰️</span><span>Wave</span></button>
                         <button class="pattern-btn" id="patternFireworks" disabled><span class="pattern-icon">✨</span><span>Fireworks</span></button>
                         <button class="pattern-btn" id="patternEarthquake" disabled><span class="pattern-icon">━━━</span><span>Earthquake</span></button>
+                        <button class="pattern-btn" id="patternConstant" disabled style="grid-column: 1 / -1;"><span class="pattern-icon">●</span><span>Constant (no pattern)</span></button>
                     </div>
                 </div>
 
@@ -228,7 +238,7 @@
         const HEALTH_URL = BACKEND_BASE + '/health';
         const BACKEND_URL = BACKEND_BASE + '/api/get-auth-token';
 
-        console.log('🚀 Lovense Voice Control App v1.12 (TAILSCALE VERSION)');
+        console.log('🚀 Lovense Voice Control App v1.17 (TAILSCALE VERSION)');
         console.log('📱 Backend: ' + BACKEND_URL);
 
         setTimeout(() => {
@@ -269,7 +279,7 @@
         const deviceBattery = document.getElementById('deviceBattery');
         const statusMessage = document.getElementById('statusMessage');
 
-        const patternButtons = { pulse: document.getElementById('patternPulse'), wave: document.getElementById('patternWave'), fireworks: document.getElementById('patternFireworks'), earthquake: document.getElementById('patternEarthquake') };
+        const patternButtons = { pulse: document.getElementById('patternPulse'), wave: document.getElementById('patternWave'), fireworks: document.getElementById('patternFireworks'), earthquake: document.getElementById('patternEarthquake'), constant: document.getElementById('patternConstant') };
         const cmdButtons = { start: document.getElementById('cmdStart'), stop: document.getElementById('cmdStop'), harder: document.getElementById('cmdHarder'), softer: document.getElementById('cmdSofter'), faster: document.getElementById('cmdFaster'), slower: document.getElementById('cmdSlower') };
 
         async function getAuthTokenFromBackend() {
@@ -359,6 +369,16 @@
             if (state.sdk) { const online = state.sdk.checkToyOnline(); updateConnectionStatus(online); if (!online) setTimeout(checkConnection, 2000); }
         }
 
+        function collapseStatusPanel() {
+            document.getElementById('statusPanel').classList.add('hidden');
+            document.getElementById('reopenPanelBtn').classList.remove('hidden');
+        }
+        function expandStatusPanel() {
+            document.getElementById('statusPanel').classList.remove('hidden');
+            document.getElementById('reopenPanelBtn').classList.add('hidden');
+        }
+        document.getElementById('reopenPanelBtn').addEventListener('click', expandStatusPanel);
+
         function updateConnectionStatus(connected) {
             state.connected = connected;
             connectionDot.classList.toggle('disconnected', !connected);
@@ -366,10 +386,11 @@
             loadingScreen.classList.toggle('hidden', connected);
             controlSection.classList.toggle('hidden', !connected);
             voiceBtn.disabled = !connected;
-            intensitySlider.disabled = !connected;
-            speedSlider.disabled = !connected;
             Object.values(patternButtons).forEach(btn => btn.disabled = !connected);
-            Object.values(cmdButtons).forEach(btn => btn.disabled = !connected);
+            cmdButtons.start.disabled = !connected;
+            cmdButtons.stop.disabled = !connected;
+            updateControlAvailability();
+            if (connected) collapseStatusPanel();
         }
 
         function updateDeviceInfo() {
@@ -411,34 +432,145 @@
 
         voiceBtn.addEventListener('click', () => { if (!recognition) { showError('Speech recognition not supported'); return; } if (state.listening) recognition.stop(); else recognition.start(); });
 
-        function processVoiceCommand(command) {
-            const cmd = command.toLowerCase().trim();
-            if (cmd.includes('start')) sendCommand('start');
-            else if (cmd.includes('stop')) sendCommand('stop');
-            else if (cmd.includes('harder')) increaseIntensity();
-            else if (cmd.includes('softer')) decreaseIntensity();
-            else if (cmd.includes('faster')) increaseSpeed();
-            else if (cmd.includes('slower')) decreaseSpeed();
-            else if (cmd.includes('pulse')) { state.currentPattern = 'pulse'; speedSection.style.display = 'flex'; sendPattern('pulse'); }
-            else if (cmd.includes('wave')) { state.currentPattern = 'wave'; speedSection.style.display = 'flex'; sendPattern('wave'); }
-            else if (cmd.includes('firework')) { state.currentPattern = 'fireworks'; speedSection.style.display = 'flex'; sendPattern('fireworks'); }
-            else if (cmd.includes('earthquake')) { state.currentPattern = 'earthquake'; speedSection.style.display = 'none'; sendPattern('earthquake'); }
+        function logCommand(source, text) {
+            const box = document.getElementById('lastCommandText');
+            const tag = source === 'voice' ? '🎤 Voice' : '👆 Button';
+            box.textContent = `${tag}: ${text}`;
         }
 
-        function sendCommand(type) { if (!state.sdk || state.onlineToys.length === 0) { showError('No device connected'); return; } try { if (type === 'start') { state.sdk.sendToyCommand({ vibrate: state.currentIntensity || 5 }); showStatus('Started'); } else if (type === 'stop') { state.sdk.stopToyAction(); showStatus('Stopped'); } } catch (error) { showError('Failed to send command'); } }
-        function sendPattern(pattern) { if (!state.sdk || state.onlineToys.length === 0) { showError('No device connected'); return; } try { state.sdk.sendPresetCommand({ name: pattern, time: 0 }); showStatus(`Pattern: ${pattern}`); } catch (error) { showError('Failed to send pattern'); } }
-        function increaseIntensity() { if (state.currentIntensity < 20) { state.currentIntensity++; intensitySlider.value = state.currentIntensity; intensityValue.textContent = state.currentIntensity; if (state.sdk) state.sdk.sendToyCommand({ vibrate: state.currentIntensity }); showStatus(`Intensity: ${state.currentIntensity}/20`); } else { playBeep(); showStatus('Maximum intensity'); } }
-        function decreaseIntensity() { if (state.currentIntensity > 0) { state.currentIntensity--; intensitySlider.value = state.currentIntensity; intensityValue.textContent = state.currentIntensity; if (state.sdk) state.sdk.sendToyCommand({ vibrate: state.currentIntensity }); showStatus(`Intensity: ${state.currentIntensity}/20`); } else { playBeep(); showStatus('Minimum intensity'); } }
-        function increaseSpeed() { if (state.currentPattern === 'earthquake') return; if (state.currentSpeed < 100) { state.currentSpeed += 10; speedSlider.value = state.currentSpeed; speedValue.textContent = state.currentSpeed + '%'; showStatus(`Speed: ${state.currentSpeed}%`); } }
-        function decreaseSpeed() { if (state.currentPattern === 'earthquake') return; if (state.currentSpeed > 0) { state.currentSpeed -= 10; speedSlider.value = state.currentSpeed; speedValue.textContent = state.currentSpeed + '%'; showStatus(`Speed: ${state.currentSpeed}%`); } }
+        const PATTERN_DISPLAY_NAMES = { pulse: 'Pulse', wave: 'Wave', fireworks: 'Fireworks', earthquake: 'Earthquake', constant: 'Constant (no pattern)' };
+        const PATTERN_START_INTENSITY = 3;
+        const PATTERN_START_SPEED = 50;
 
-        intensitySlider.addEventListener('input', (e) => { state.currentIntensity = parseInt(e.target.value); intensityValue.textContent = state.currentIntensity; if (state.sdk && state.currentIntensity > 0) state.sdk.sendToyCommand({ vibrate: state.currentIntensity }); });
-        speedSlider.addEventListener('input', (e) => { state.currentSpeed = parseInt(e.target.value); speedValue.textContent = state.currentSpeed + '%'; });
+        function setActivePatternLabel(pattern) {
+            const label = document.getElementById('activePatternLabel');
+            label.textContent = pattern ? PATTERN_DISPLAY_NAMES[pattern] + ' active' : 'None active';
+        }
 
-        patternButtons.pulse.addEventListener('click', () => { state.currentPattern = 'pulse'; speedSection.style.display = 'flex'; sendPattern('pulse'); });
-        patternButtons.wave.addEventListener('click', () => { state.currentPattern = 'wave'; speedSection.style.display = 'flex'; sendPattern('wave'); });
-        patternButtons.fireworks.addEventListener('click', () => { state.currentPattern = 'fireworks'; speedSection.style.display = 'flex'; sendPattern('fireworks'); });
-        patternButtons.earthquake.addEventListener('click', () => { state.currentPattern = 'earthquake'; speedSection.style.display = 'none'; sendPattern('earthquake'); });
+        function updateControlAvailability() {
+            const namedPatterns = ['pulse', 'wave', 'fireworks', 'earthquake'];
+            const isNamedPattern = namedPatterns.includes(state.currentPattern);
+            // Named patterns: intensity is baked into the preset itself — only speed (repeat rate) is adjustable
+            // Constant / no pattern: it's a flat vibration — only intensity is adjustable, no speed concept
+            cmdButtons.harder.disabled = !state.connected || isNamedPattern;
+            cmdButtons.softer.disabled = !state.connected || isNamedPattern;
+            intensitySlider.disabled = !state.connected || isNamedPattern;
+            cmdButtons.faster.disabled = !state.connected || !isNamedPattern;
+            cmdButtons.slower.disabled = !state.connected || !isNamedPattern;
+            speedSlider.disabled = !state.connected || !isNamedPattern;
+            speedSection.style.display = isNamedPattern ? 'flex' : 'none';
+        }
+
+        function resetLevelsForNewPattern(source = 'button') {
+            state.currentSpeed = PATTERN_START_SPEED;
+            speedSlider.value = PATTERN_START_SPEED;
+            speedValue.textContent = PATTERN_START_SPEED + '%';
+            state.currentIntensity = PATTERN_START_INTENSITY;
+            intensitySlider.value = PATTERN_START_INTENSITY;
+            intensityValue.textContent = PATTERN_START_INTENSITY;
+            if (state.sdk) state.sdk.sendToyCommand({ vibrate: PATTERN_START_INTENSITY });
+        }
+
+        function processVoiceCommand(command) {
+            const cmd = command.toLowerCase().trim();
+            if (cmd.includes('start')) sendCommand('start', 'voice');
+            else if (cmd.includes('stop')) sendCommand('stop', 'voice');
+            else if (cmd.includes('harder')) increaseIntensity('voice');
+            else if (cmd.includes('softer')) decreaseIntensity('voice');
+            else if (cmd.includes('maximum') || cmd.includes('all the way up')) jumpToMaxIntensity('voice');
+            else if (cmd.includes('faster')) increaseSpeed('voice');
+            else if (cmd.includes('slower')) decreaseSpeed('voice');
+            else if (cmd.includes('pulse')) { state.currentPattern = 'pulse'; resetLevelsForNewPattern(); setActivePatternLabel('pulse'); updateControlAvailability(); sendPattern('pulse', 'voice'); }
+            else if (cmd.includes('wave')) { state.currentPattern = 'wave'; resetLevelsForNewPattern(); setActivePatternLabel('wave'); updateControlAvailability(); sendPattern('wave', 'voice'); }
+            else if (cmd.includes('firework')) { state.currentPattern = 'fireworks'; resetLevelsForNewPattern(); setActivePatternLabel('fireworks'); updateControlAvailability(); sendPattern('fireworks', 'voice'); }
+            else if (cmd.includes('earthquake')) { state.currentPattern = 'earthquake'; resetLevelsForNewPattern(); setActivePatternLabel('earthquake'); updateControlAvailability(); sendPattern('earthquake', 'voice'); }
+            else if (cmd.includes('constant')) { state.currentPattern = 'constant'; resetLevelsForNewPattern(); setActivePatternLabel('constant'); updateControlAvailability(); sendConstantVibration('voice'); }
+        }
+
+        function jumpToMaxIntensity(source = 'button') {
+            const namedPatterns = ['pulse', 'wave', 'fireworks', 'earthquake'];
+            if (namedPatterns.includes(state.currentPattern)) {
+                logCommand(source, 'Maximum (disabled during patterns)');
+                return;
+            }
+            state.currentIntensity = 20;
+            intensitySlider.value = 20;
+            intensityValue.textContent = 20;
+            if (state.sdk) state.sdk.sendToyCommand({ vibrate: 20 });
+            showStatus('Intensity: 20/20 (max)');
+            logCommand(source, 'Maximum → intensity 20/20');
+        }
+
+        function sendConstantVibration(source = 'button') {
+            if (!state.sdk || state.onlineToys.length === 0) { showError('No device connected'); return; }
+            try {
+                state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
+                showStatus('Constant vibration');
+                logCommand(source, `Constant vibration (intensity=${state.currentIntensity})`);
+            } catch (error) { showError('Failed to send command'); }
+        }
+
+        function sendCommand(type, source = 'button') {
+            if (!state.sdk || state.onlineToys.length === 0) { showError('No device connected'); return; }
+            try {
+                if (type === 'start') { state.sdk.sendToyCommand({ vibrate: state.currentIntensity || 5 }); showStatus('Started'); logCommand(source, `Start (vibrate=${state.currentIntensity || 5})`); }
+                else if (type === 'stop') { state.sdk.stopToyAction(); showStatus('Stopped'); setActivePatternLabel(null); state.currentPattern = null; updateControlAvailability(); logCommand(source, 'Stop'); }
+            } catch (error) { showError('Failed to send command'); }
+        }
+        function sendPattern(pattern, source = 'button') {
+            if (!state.sdk || state.onlineToys.length === 0) { showError('No device connected'); return; }
+            try { state.sdk.sendPresetCommand({ name: pattern, time: 0 }); showStatus(`Pattern: ${pattern}`); logCommand(source, `Pattern: ${pattern}`); }
+            catch (error) { showError('Failed to send pattern'); }
+        }
+        function increaseIntensity(source = 'button') {
+            if (state.currentIntensity < 20) {
+                state.currentIntensity++;
+                intensitySlider.value = state.currentIntensity;
+                intensityValue.textContent = state.currentIntensity;
+                if (state.sdk) state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
+                showStatus(`Intensity: ${state.currentIntensity}/20`);
+                logCommand(source, `Harder → intensity ${state.currentIntensity}/20`);
+            } else { playBeep(); showStatus('Maximum intensity'); logCommand(source, 'Harder (already at max)'); }
+        }
+        function decreaseIntensity(source = 'button') {
+            if (state.currentIntensity > 0) {
+                state.currentIntensity--;
+                intensitySlider.value = state.currentIntensity;
+                intensityValue.textContent = state.currentIntensity;
+                if (state.sdk) state.sdk.sendToyCommand({ vibrate: state.currentIntensity });
+                showStatus(`Intensity: ${state.currentIntensity}/20`);
+                logCommand(source, `Softer → intensity ${state.currentIntensity}/20`);
+            } else { playBeep(); showStatus('Minimum intensity'); logCommand(source, 'Softer (already at min)'); }
+        }
+        function increaseSpeed(source = 'button') {
+            if (state.currentPattern === 'earthquake') { logCommand(source, 'Faster (disabled for Earthquake)'); return; }
+            if (state.currentSpeed < 100) {
+                state.currentSpeed += 10;
+                speedSlider.value = state.currentSpeed;
+                speedValue.textContent = state.currentSpeed + '%';
+                showStatus(`Speed: ${state.currentSpeed}%`);
+                logCommand(source, `Faster → speed ${state.currentSpeed}%`);
+            }
+        }
+        function decreaseSpeed(source = 'button') {
+            if (state.currentPattern === 'earthquake') { logCommand(source, 'Slower (disabled for Earthquake)'); return; }
+            if (state.currentSpeed > 0) {
+                state.currentSpeed -= 10;
+                speedSlider.value = state.currentSpeed;
+                speedValue.textContent = state.currentSpeed + '%';
+                showStatus(`Speed: ${state.currentSpeed}%`);
+                logCommand(source, `Slower → speed ${state.currentSpeed}%`);
+            }
+        }
+
+        intensitySlider.addEventListener('input', (e) => { state.currentIntensity = parseInt(e.target.value); intensityValue.textContent = state.currentIntensity; if (state.sdk && state.currentIntensity > 0) state.sdk.sendToyCommand({ vibrate: state.currentIntensity }); logCommand('button', `Intensity slider → ${state.currentIntensity}/20`); });
+        speedSlider.addEventListener('input', (e) => { state.currentSpeed = parseInt(e.target.value); speedValue.textContent = state.currentSpeed + '%'; logCommand('button', `Speed slider → ${state.currentSpeed}%`); });
+
+        patternButtons.pulse.addEventListener('click', () => { state.currentPattern = 'pulse'; resetLevelsForNewPattern(); setActivePatternLabel('pulse'); updateControlAvailability(); sendPattern('pulse'); });
+        patternButtons.wave.addEventListener('click', () => { state.currentPattern = 'wave'; resetLevelsForNewPattern(); setActivePatternLabel('wave'); updateControlAvailability(); sendPattern('wave'); });
+        patternButtons.fireworks.addEventListener('click', () => { state.currentPattern = 'fireworks'; resetLevelsForNewPattern(); setActivePatternLabel('fireworks'); updateControlAvailability(); sendPattern('fireworks'); });
+        patternButtons.earthquake.addEventListener('click', () => { state.currentPattern = 'earthquake'; resetLevelsForNewPattern(); setActivePatternLabel('earthquake'); updateControlAvailability(); sendPattern('earthquake'); });
+        patternButtons.constant.addEventListener('click', () => { state.currentPattern = 'constant'; resetLevelsForNewPattern(); setActivePatternLabel('constant'); updateControlAvailability(); sendConstantVibration(); });
 
         cmdButtons.start.addEventListener('click', () => sendCommand('start'));
         cmdButtons.stop.addEventListener('click', () => sendCommand('stop'));
