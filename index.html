@@ -108,7 +108,7 @@
 <body>
     <button id="reopenPanelBtn" class="hidden" style="position: fixed; top: 10px; right: 10px; z-index: 10000; background: #ff1493; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">≡</button>
     <div class="status-panel" id="statusPanel">
-        <div class="status-version">v1.25 - HTTPS</div>
+        <div class="status-version">v1.26 - HTTPS</div>
         <div class="status-backend-version" id="backendVersionText">Backend: checking...</div>
         <div class="status-item"><div class="status-icon success" id="step0Icon">✓</div><div class="status-text">JS Load</div></div>
         <div class="status-item"><div class="status-icon pending" id="step1Icon">○</div><div class="status-text">SDK</div></div>
@@ -169,7 +169,10 @@
     <div class="container">
         <div id="loadingScreen" class="loading-screen">
             <div class="spinner"></div>
-            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.25 - HTTPS</span></div>
+            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.26 - HTTPS</span></div>
+            <button id="testModeBtn" style="background: #333; color: #ccc; border: 1px solid #555; border-radius: 8px; padding: 10px 16px; font-size: 12px; cursor: pointer; margin-top: 12px;">
+                Skip Connection (Test Commands, No Toy)
+            </button>
         </div>
 
         <div id="controlSection" class="voice-section hidden">
@@ -260,7 +263,7 @@
         const HEALTH_URL = BACKEND_BASE + '/health';
         const BACKEND_URL = BACKEND_BASE + '/api/get-auth-token';
 
-        console.log('🚀 Lovense Voice Control App v1.25 (TAILSCALE VERSION)');
+        console.log('🚀 Lovense Voice Control App v1.26 (TAILSCALE VERSION)');
         console.log('📱 Backend: ' + BACKEND_URL);
 
         setTimeout(() => {
@@ -680,6 +683,19 @@
 
         function showStatus(message) { statusMessage.textContent = message; statusMessage.classList.remove('hidden'); setTimeout(() => statusMessage.classList.add('hidden'), 3000); }
         function showError(message) { statusMessage.textContent = '❌ ' + message; statusMessage.classList.remove('hidden'); setTimeout(() => statusMessage.classList.add('hidden'), 5000); }
+
+        document.getElementById('testModeBtn').addEventListener('click', () => {
+            state.sdk = {
+                sendToyCommand: (opts) => console.log('[TEST MODE] sendToyCommand', opts),
+                sendPresetCommand: (opts) => console.log('[TEST MODE] sendPresetCommand', opts),
+                sendPatternCommand: (opts) => console.log('[TEST MODE] sendPatternCommand', opts),
+                stopToyAction: () => console.log('[TEST MODE] stopToyAction'),
+            };
+            state.onlineToys = [{ id: 'test', name: 'Test Toy', nickname: 'Test Toy (fake)', battery: 100, connected: true }];
+            updateDeviceInfo();
+            updateConnectionStatus(true);
+            showStatus('Test Mode active — no real toy, commands are simulated');
+        });
 
         document.addEventListener('DOMContentLoaded', initializeLovenseSdk);
     </script>
