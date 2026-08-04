@@ -104,13 +104,18 @@
         .cmd-hint { font-size: 10px; color: #777; background: rgba(255,255,255,0.04); padding: 3px 9px; border-radius: 10px; transition: all 0.3s ease; }
         .cmd-hint.disabled-hint { opacity: 0.25; text-decoration: line-through; }
         .cmd-hint.flash-hint { background: #ff1493; color: white; }
+
+        .gen-btn { background: #333; color: #ccc; border: 1px solid #555; border-radius: 8px; padding: 8px 12px; font-size: 12px; cursor: pointer; }
+        .gen-btn.active-stop { background: #ff1493; color: white; border-color: #ff1493; }
+        .gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        #genGraphCanvas { display: block; width: 100%; height: 100px; background: #1a1a1a; border-radius: 8px; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <button id="reopenPanelBtn" class="hidden" style="position: fixed; top: 10px; right: 10px; z-index: 10000; background: #ff1493; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">≡</button>
     <div class="status-panel" id="statusPanel">
-        <div class="status-version">v1.28 - HTTPS</div>
+        <div class="status-version">v1.29 - HTTPS</div>
         <div class="status-backend-version" id="backendVersionText">Backend: checking...</div>
         <div class="status-item"><div class="status-icon success" id="step0Icon">✓</div><div class="status-text">JS Load</div></div>
         <div class="status-item"><div class="status-icon pending" id="step1Icon">○</div><div class="status-text">SDK</div></div>
@@ -171,7 +176,7 @@
     <div class="container">
         <div id="loadingScreen" class="loading-screen">
             <div class="spinner"></div>
-            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.28 - HTTPS</span></div>
+            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.29 - HTTPS</span></div>
             <button id="testModeBtn" style="background: #333; color: #ccc; border: 1px solid #555; border-radius: 8px; padding: 10px 16px; font-size: 12px; cursor: pointer; margin-top: 12px;">
                 Skip Connection (Test Commands, No Toy)
             </button>
@@ -244,6 +249,20 @@
                     </div>
                 </div>
 
+                <div class="generative-section" style="width: 100%; margin-top: 14px;">
+                    <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Generative Waves</div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button class="gen-btn" id="startScenarioABtn" disabled>Start Scenario A</button>
+                        <button class="gen-btn" id="startScenarioBBtn" disabled>Start Scenario B</button>
+                        <button class="gen-btn" id="stopGenerativeBtn" disabled>Stop</button>
+                    </div>
+                    <div id="genGraphSection" class="hidden">
+                        <canvas id="genGraphCanvas" width="340" height="100"></canvas>
+                        <div id="genCountdown" style="font-size: 11px; color: #ff1493; margin-top: 6px; text-align: center;"></div>
+                        <div id="genStatus" style="font-size: 10px; color: #666; margin-top: 2px; text-align: center;"></div>
+                    </div>
+                </div>
+
                 <div id="statusMessage" class="status-message hidden"></div>
             </div>
         </div>
@@ -268,7 +287,7 @@
         const HEALTH_URL = BACKEND_BASE + '/health';
         const BACKEND_URL = BACKEND_BASE + '/api/get-auth-token';
 
-        console.log('🚀 Lovense Voice Control App v1.28 (TAILSCALE VERSION)');
+        console.log('🚀 Lovense Voice Control App v1.29 (TAILSCALE VERSION)');
         console.log('📱 Backend: ' + BACKEND_URL);
 
         setTimeout(() => {
@@ -484,7 +503,7 @@
             box.textContent = `${tag}: ${text}`;
         }
 
-        const PATTERN_DISPLAY_NAMES = { pulse: 'Pulse', wave: 'Wave', fireworks: 'Fireworks', earthquake: 'Earthquake', constant: 'Constant (no pattern)' };
+        const PATTERN_DISPLAY_NAMES = { pulse: 'Pulse', wave: 'Wave', fireworks: 'Fireworks', earthquake: 'Earthquake', constant: 'Constant (no pattern)', generative: 'Generative Waves' };
         const PATTERN_START_INTENSITY = 3;
         const PATTERN_START_SPEED = 50;
 
@@ -496,24 +515,36 @@
         function updateControlAvailability() {
             const namedPatterns = ['pulse', 'wave', 'fireworks', 'earthquake'];
             const isNamedPattern = namedPatterns.includes(state.currentPattern);
+            const isGenerativeActive = state.currentPattern === 'generative';
             // Named patterns: intensity is baked into the preset itself — only speed (repeat rate) is adjustable
             // Constant / no pattern: it's a flat vibration — only intensity is adjustable, no speed concept
-            cmdButtons.harder.disabled = !state.connected || isNamedPattern;
-            cmdButtons.softer.disabled = !state.connected || isNamedPattern;
-            cmdButtons.maximum.disabled = !state.connected || isNamedPattern;
-            intensitySlider.disabled = !state.connected || isNamedPattern;
-            cmdButtons.faster.disabled = !state.connected || !isNamedPattern;
-            cmdButtons.slower.disabled = !state.connected || !isNamedPattern;
-            speedSlider.disabled = !state.connected || !isNamedPattern;
+            // Generative Waves: fully autonomous — all manual controls lock until Stop is pressed
+            cmdButtons.harder.disabled = !state.connected || isNamedPattern || isGenerativeActive;
+            cmdButtons.softer.disabled = !state.connected || isNamedPattern || isGenerativeActive;
+            cmdButtons.maximum.disabled = !state.connected || isNamedPattern || isGenerativeActive;
+            intensitySlider.disabled = !state.connected || isNamedPattern || isGenerativeActive;
+            cmdButtons.faster.disabled = !state.connected || !isNamedPattern || isGenerativeActive;
+            cmdButtons.slower.disabled = !state.connected || !isNamedPattern || isGenerativeActive;
+            speedSlider.disabled = !state.connected || !isNamedPattern || isGenerativeActive;
             speedSection.style.display = isNamedPattern ? 'flex' : 'none';
+            cmdButtons.start.disabled = !state.connected || isGenerativeActive;
+            cmdButtons.stop.disabled = !state.connected || isGenerativeActive;
+            Object.values(patternButtons).forEach((btn) => { btn.disabled = !state.connected || isGenerativeActive; });
+
+            const startABtn = document.getElementById('startScenarioABtn');
+            const startBBtn = document.getElementById('startScenarioBBtn');
+            const stopGenBtn = document.getElementById('stopGenerativeBtn');
+            if (startABtn) startABtn.disabled = !state.connected;
+            if (startBBtn) startBBtn.disabled = !state.connected;
+            if (stopGenBtn) { stopGenBtn.disabled = !isGenerativeActive; stopGenBtn.classList.toggle('active-stop', isGenerativeActive); }
 
             const intensityWords = ['harder', 'softer', 'maximum'];
             const speedWords = ['faster', 'slower'];
             document.querySelectorAll('.cmd-hint').forEach((el) => {
                 const cmd = el.dataset.cmd;
                 let disabled = false;
-                if (intensityWords.includes(cmd) && isNamedPattern) disabled = true;
-                if (speedWords.includes(cmd) && !isNamedPattern) disabled = true;
+                if (intensityWords.includes(cmd) && (isNamedPattern || isGenerativeActive)) disabled = true;
+                if (speedWords.includes(cmd) && (!isNamedPattern || isGenerativeActive)) disabled = true;
                 el.classList.toggle('disabled-hint', disabled);
             });
         }
@@ -705,6 +736,202 @@
             updateConnectionStatus(true);
             showStatus('Test Mode active — no real toy, commands are simulated');
         });
+
+        // ==================== Generative Waves ====================
+        const WAVE_STEPS = 16;
+        const WAVE_INTERVAL_MS = 125; // 16 * 125 = 2000ms = 2s
+        const WAVE_DURATION_S = (WAVE_STEPS * WAVE_INTERVAL_MS) / 1000; // 2
+
+        function waveIntensityAt(fraction) {
+            // fraction: 0..1 progress through the wave. Returns 0..20 following a smooth sine hump.
+            const f = Math.max(0, Math.min(1, fraction));
+            return 20 * Math.sin(Math.PI * f);
+        }
+
+        function buildWaveStrengthString() {
+            const vals = [];
+            for (let i = 0; i < WAVE_STEPS; i++) {
+                vals.push(Math.round(waveIntensityAt(i / (WAVE_STEPS - 1))));
+            }
+            return vals.join(';');
+        }
+
+        let generativeState = {
+            active: false,
+            scenario: null,
+            scenarioStartTime: 0,
+            timeoutId: null,
+            nextWaveTimestamp: 0,
+            waveStartTimes: [],
+            graphSamples: [],
+            animFrameId: null,
+            countdownIntervalId: null,
+            clusterRemaining: 0,
+        };
+
+        function fireWaveBurst() {
+            if (state.sdk) {
+                try {
+                    state.sdk.sendPatternCommand({ strength: buildWaveStrengthString(), time: WAVE_DURATION_S, interval: WAVE_INTERVAL_MS });
+                } catch (e) { console.error('fireWaveBurst failed:', e); }
+            }
+            const now = Date.now();
+            generativeState.waveStartTimes.push(now);
+            const cutoff = now - (WAVE_DURATION_S * 1000 + 200);
+            generativeState.waveStartTimes = generativeState.waveStartTimes.filter((t) => t > cutoff);
+        }
+
+        function randomInRange(min, max) { return min + Math.random() * (max - min); }
+        function randomIntInRange(min, max) { return Math.floor(min + Math.random() * (max - min + 1)); }
+
+        // ---- Scenario A: single wave, pause tightens 30s -> 1s floor over 10 minutes ----
+        function scenarioAPauseSeconds(elapsedMs) {
+            const elapsedMin = elapsedMs / 60000;
+            const tier = Math.min(Math.floor(elapsedMin), 10);
+            if (tier >= 10) return 1;
+            return 30 - tier * 3;
+        }
+        function scheduleScenarioA() {
+            if (!generativeState.active || generativeState.scenario !== 'A') return;
+            fireWaveBurst();
+            const elapsed = Date.now() - generativeState.scenarioStartTime;
+            const pauseS = scenarioAPauseSeconds(elapsed);
+            document.getElementById('genStatus').textContent = `Scenario A — pause: ${pauseS}s`;
+            generativeState.nextWaveTimestamp = Date.now() + pauseS * 1000;
+            generativeState.timeoutId = setTimeout(scheduleScenarioA, pauseS * 1000);
+        }
+
+        // ---- Scenario B: clusters of 1-3 waves, inter-cluster pause tightens across 3 stages of 4 min each ----
+        function scenarioBStageRange(elapsedMs) {
+            const elapsedMin = elapsedMs / 60000;
+            if (elapsedMin < 4) return [20, 30];
+            if (elapsedMin < 8) return [15, 25];
+            return [10, 20];
+        }
+        function startNewClusterB() {
+            if (!generativeState.active || generativeState.scenario !== 'B') return;
+            generativeState.clusterRemaining = randomIntInRange(1, 3);
+            fireClusterWaveB();
+        }
+        function fireClusterWaveB() {
+            if (!generativeState.active || generativeState.scenario !== 'B') return;
+            fireWaveBurst();
+            generativeState.clusterRemaining--;
+            if (generativeState.clusterRemaining > 0) {
+                const gapS = randomInRange(1, 3);
+                document.getElementById('genStatus').textContent = `Scenario B — within cluster, next in ${gapS.toFixed(1)}s`;
+                generativeState.nextWaveTimestamp = Date.now() + gapS * 1000;
+                generativeState.timeoutId = setTimeout(fireClusterWaveB, gapS * 1000);
+            } else {
+                const elapsed = Date.now() - generativeState.scenarioStartTime;
+                const [lo, hi] = scenarioBStageRange(elapsed);
+                const pauseS = randomInRange(lo, hi);
+                document.getElementById('genStatus').textContent = `Scenario B — between clusters (${lo}-${hi}s range)`;
+                generativeState.nextWaveTimestamp = Date.now() + pauseS * 1000;
+                generativeState.timeoutId = setTimeout(startNewClusterB, pauseS * 1000);
+            }
+        }
+
+        // ---- Live graph ----
+        function currentInstantIntensity() {
+            const now = Date.now();
+            let maxVal = 0;
+            for (const startT of generativeState.waveStartTimes) {
+                const elapsedS = (now - startT) / 1000;
+                if (elapsedS >= 0 && elapsedS <= WAVE_DURATION_S) {
+                    const val = waveIntensityAt(elapsedS / WAVE_DURATION_S);
+                    if (val > maxVal) maxVal = val;
+                }
+            }
+            return maxVal;
+        }
+
+        function startGraphAnimation() {
+            const canvas = document.getElementById('genGraphCanvas');
+            const ctx = canvas.getContext('2d');
+            const WINDOW_S = 60;
+            function draw() {
+                if (!generativeState.active) return;
+                const now = Date.now();
+                generativeState.graphSamples.push({ t: now, v: currentInstantIntensity() });
+                const cutoff = now - WINDOW_S * 1000;
+                generativeState.graphSamples = generativeState.graphSamples.filter((s) => s.t > cutoff);
+
+                const w = canvas.width, h = canvas.height;
+                ctx.clearRect(0, 0, w, h);
+                ctx.strokeStyle = '#ff1493';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                generativeState.graphSamples.forEach((s, idx) => {
+                    const x = w - ((now - s.t) / (WINDOW_S * 1000)) * w;
+                    const y = h - (s.v / 20) * (h - 6) - 3;
+                    if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                generativeState.animFrameId = requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        function startCountdownDisplay() {
+            const el = document.getElementById('genCountdown');
+            function tick() {
+                if (!generativeState.active) { el.textContent = ''; return; }
+                const remainingS = Math.max(0, Math.ceil((generativeState.nextWaveTimestamp - Date.now()) / 1000));
+                el.textContent = `Next wave in: ${remainingS}s`;
+            }
+            tick();
+            generativeState.countdownIntervalId = setInterval(tick, 250);
+        }
+
+        function startGenerative(scenario) {
+            if (!state.sdk || state.onlineToys.length === 0) { showError('No device connected'); return; }
+            stopGenerative();
+            generativeState.active = true;
+            generativeState.scenario = scenario;
+            generativeState.scenarioStartTime = Date.now();
+            generativeState.waveStartTimes = [];
+            generativeState.graphSamples = [];
+            state.currentPattern = 'generative';
+            setActivePatternLabel('generative');
+            updateControlAvailability();
+            document.getElementById('genGraphSection').classList.remove('hidden');
+            startGraphAnimation();
+            startCountdownDisplay();
+            if (scenario === 'A') scheduleScenarioA();
+            else startNewClusterB();
+            logCommand('button', `Started Generative Scenario ${scenario}`);
+            showStatus(`Generative Scenario ${scenario} started`);
+        }
+
+        function stopGenerative() {
+            const wasActive = generativeState.active;
+            if (generativeState.timeoutId) clearTimeout(generativeState.timeoutId);
+            if (generativeState.animFrameId) cancelAnimationFrame(generativeState.animFrameId);
+            if (generativeState.countdownIntervalId) clearInterval(generativeState.countdownIntervalId);
+            generativeState.active = false;
+            generativeState.scenario = null;
+            generativeState.timeoutId = null;
+            generativeState.animFrameId = null;
+            generativeState.countdownIntervalId = null;
+            if (state.sdk) { try { state.sdk.stopToyAction(); } catch (e) {} }
+            if (state.currentPattern === 'generative') {
+                state.currentPattern = null;
+                setActivePatternLabel(null);
+                updateControlAvailability();
+            }
+            if (wasActive) {
+                document.getElementById('genCountdown').textContent = '';
+                document.getElementById('genStatus').textContent = 'Stopped';
+                logCommand('button', 'Stopped Generative Waves');
+                showStatus('Generative Waves stopped');
+            }
+        }
+
+        document.getElementById('startScenarioABtn').addEventListener('click', () => startGenerative('A'));
+        document.getElementById('startScenarioBBtn').addEventListener('click', () => startGenerative('B'));
+        document.getElementById('stopGenerativeBtn').addEventListener('click', () => stopGenerative());
 
         document.addEventListener('DOMContentLoaded', initializeLovenseSdk);
     </script>
