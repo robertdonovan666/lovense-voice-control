@@ -91,11 +91,11 @@
         .intensity-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #ff1493; cursor: pointer; box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4); }
         .intensity-slider::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #ff1493; cursor: pointer; border: none; box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4); }
 
-        .patterns-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; }
-        .pattern-btn { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 10px; padding: 14px; cursor: pointer; font-size: 11px; color: #fff; font-weight: 500; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .patterns-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; }
+        .pattern-btn { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 8px; padding: 8px 4px; cursor: pointer; font-size: 9px; color: #fff; font-weight: 500; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; gap: 3px; }
         .pattern-btn:active { border-color: #ff1493; background: rgba(255, 20, 147, 0.1); transform: scale(0.98); }
         .pattern-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .pattern-icon { font-size: 18px; }
+        .pattern-icon { font-size: 14px; }
 
         .status-message { font-size: 14px; color: #aaa; text-align: center; padding: 12px 24px; background: rgba(255, 20, 147, 0.05); border-radius: 8px; border-left: 3px solid #ff1493; }
 
@@ -115,7 +115,7 @@
 <body>
     <button id="reopenPanelBtn" class="hidden" style="position: fixed; top: 10px; right: 10px; z-index: 10000; background: #ff1493; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">≡</button>
     <div class="status-panel" id="statusPanel">
-        <div class="status-version">v1.29 - HTTPS</div>
+        <div class="status-version">v1.30 - HTTPS</div>
         <div class="status-backend-version" id="backendVersionText">Backend: checking...</div>
         <div class="status-item"><div class="status-icon success" id="step0Icon">✓</div><div class="status-text">JS Load</div></div>
         <div class="status-item"><div class="status-icon pending" id="step1Icon">○</div><div class="status-text">SDK</div></div>
@@ -176,7 +176,7 @@
     <div class="container">
         <div id="loadingScreen" class="loading-screen">
             <div class="spinner"></div>
-            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.29 - HTTPS</span></div>
+            <div class="loading-text">Connecting to backend...<br><span style="font-size: 12px; color: #666; margin-top: 8px;">chaos-helper.tail0f1c45.ts.net</span><span style="font-size: 11px; color: #555; margin-top: 12px;">v1.30 - HTTPS</span></div>
             <button id="testModeBtn" style="background: #333; color: #ccc; border: 1px solid #555; border-radius: 8px; padding: 10px 16px; font-size: 12px; cursor: pointer; margin-top: 12px;">
                 Skip Connection (Test Commands, No Toy)
             </button>
@@ -245,12 +245,17 @@
                         <button class="pattern-btn" id="patternWave" disabled><span class="pattern-icon">〰️</span><span>Wave</span></button>
                         <button class="pattern-btn" id="patternFireworks" disabled><span class="pattern-icon">✨</span><span>Fireworks</span></button>
                         <button class="pattern-btn" id="patternEarthquake" disabled><span class="pattern-icon">━━━</span><span>Earthquake</span></button>
-                        <button class="pattern-btn" id="patternConstant" disabled style="grid-column: 1 / -1;"><span class="pattern-icon">●</span><span>Constant (no pattern)</span></button>
+                        <button class="pattern-btn" id="patternConstant" disabled><span class="pattern-icon">●</span><span>Constant</span></button>
                     </div>
                 </div>
 
                 <div class="generative-section" style="width: 100%; margin-top: 14px;">
                     <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Generative Waves</div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 11px; color: #888;">Time to plateau</span>
+                        <span id="plateauMinutesValue" style="font-size: 11px; color: #ff1493; font-weight: 600;">10 min</span>
+                    </div>
+                    <input type="range" class="intensity-slider" id="plateauMinutesSlider" min="4" max="15" value="10" style="margin-bottom: 10px;">
                     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                         <button class="gen-btn" id="startScenarioABtn" disabled>Start Scenario A</button>
                         <button class="gen-btn" id="startScenarioBBtn" disabled>Start Scenario B</button>
@@ -287,7 +292,7 @@
         const HEALTH_URL = BACKEND_BASE + '/health';
         const BACKEND_URL = BACKEND_BASE + '/api/get-auth-token';
 
-        console.log('🚀 Lovense Voice Control App v1.29 (TAILSCALE VERSION)');
+        console.log('🚀 Lovense Voice Control App v1.30 (TAILSCALE VERSION)');
         console.log('📱 Backend: ' + BACKEND_URL);
 
         setTimeout(() => {
@@ -767,6 +772,7 @@
             animFrameId: null,
             countdownIntervalId: null,
             clusterRemaining: 0,
+            plateauMinutes: 10,
         };
 
         function fireWaveBurst() {
@@ -786,26 +792,29 @@
 
         // ---- Scenario A: single wave, pause tightens 30s -> 1s floor over 10 minutes ----
         function scenarioAPauseSeconds(elapsedMs) {
+            const totalMinutes = generativeState.plateauMinutes;
             const elapsedMin = elapsedMs / 60000;
-            const tier = Math.min(Math.floor(elapsedMin), 10);
-            if (tier >= 10) return 1;
-            return 30 - tier * 3;
+            const tier = Math.min(Math.floor(elapsedMin), totalMinutes);
+            if (tier >= totalMinutes) return 1;
+            const stepSize = (30 - 1) / totalMinutes;
+            return 30 - tier * stepSize;
         }
         function scheduleScenarioA() {
             if (!generativeState.active || generativeState.scenario !== 'A') return;
             fireWaveBurst();
             const elapsed = Date.now() - generativeState.scenarioStartTime;
             const pauseS = scenarioAPauseSeconds(elapsed);
-            document.getElementById('genStatus').textContent = `Scenario A — pause: ${pauseS}s`;
+            document.getElementById('genStatus').textContent = `Scenario A — pause: ${pauseS.toFixed(1)}s`;
             generativeState.nextWaveTimestamp = Date.now() + pauseS * 1000;
             generativeState.timeoutId = setTimeout(scheduleScenarioA, pauseS * 1000);
         }
 
-        // ---- Scenario B: clusters of 1-3 waves, inter-cluster pause tightens across 3 stages of 4 min each ----
+        // ---- Scenario B: clusters of 1-3 waves, inter-cluster pause tightens across 3 equal stages ----
         function scenarioBStageRange(elapsedMs) {
+            const stageLength = generativeState.plateauMinutes / 3;
             const elapsedMin = elapsedMs / 60000;
-            if (elapsedMin < 4) return [20, 30];
-            if (elapsedMin < 8) return [15, 25];
+            if (elapsedMin < stageLength) return [20, 30];
+            if (elapsedMin < stageLength * 2) return [15, 25];
             return [10, 20];
         }
         function startNewClusterB() {
@@ -891,6 +900,7 @@
             generativeState.active = true;
             generativeState.scenario = scenario;
             generativeState.scenarioStartTime = Date.now();
+            generativeState.plateauMinutes = parseInt(document.getElementById('plateauMinutesSlider').value);
             generativeState.waveStartTimes = [];
             generativeState.graphSamples = [];
             state.currentPattern = 'generative';
@@ -928,6 +938,17 @@
                 showStatus('Generative Waves stopped');
             }
         }
+
+        document.getElementById('plateauMinutesSlider').addEventListener('input', (e) => {
+            document.getElementById('plateauMinutesValue').textContent = e.target.value + ' min';
+        });
+        document.getElementById('plateauMinutesSlider').addEventListener('change', (e) => {
+            if (generativeState.active) {
+                const wasScenario = generativeState.scenario;
+                stopGenerative();
+                startGenerative(wasScenario);
+            }
+        });
 
         document.getElementById('startScenarioABtn').addEventListener('click', () => startGenerative('A'));
         document.getElementById('startScenarioBBtn').addEventListener('click', () => startGenerative('B'));
